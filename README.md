@@ -1,4 +1,4 @@
-# poly-core
+# polycore
 
 A shared polynomial trait foundation for fields, word-sized prime fields, Chinese remaindering, sparse multivariate and dense univariate polynomials, and a sparse incremental echelon form.
 

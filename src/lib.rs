@@ -28,11 +28,11 @@ pub mod sample;
 mod uni;
 
 pub use echelon::{Echelon, Lead, SparseRow};
-pub use field::{nat, pow, Field};
+pub use field::{Field, nat, pow};
 pub use fp::{Fp, Gf, Modular, ParseFpError};
 pub use modp::Primes;
 pub use monomial::{Monomial, Order};
 pub use parse::{ParseError, Ring};
-pub use poly::{combination, Poly, Term};
+pub use poly::{Poly, Term, combination};
 pub use ratfunc::RatFunc;
 pub use uni::Uni;

@@ -3,10 +3,10 @@
 use std::fmt::{Display, Write};
 
 use num_rational::BigRational;
-use poly_core::interp::{self, Massey, Thiele};
-use poly_core::{
-    combination, crt, dense, modp, Echelon, Field, Fp, Lead, Order, Poly, Primes, RatFunc, Ring,
-    Uni,
+use polycore::interp::{self, Massey, Thiele};
+use polycore::{
+    Echelon, Field, Fp, Lead, Order, Poly, Primes, RatFunc, Ring, Uni, combination, crt, dense,
+    modp,
 };
 
 type Q = BigRational;
@@ -255,7 +255,7 @@ impl Session {
                 let w: Vec<F> = (1..=vals.len() as u64)
                     .map(|j| {
                         vals.iter().zip(&cs).fold(F::zero(), |acc, (v, c)| {
-                            acc + c.clone() * poly_core::pow(v, j)
+                            acc + c.clone() * polycore::pow(v, j)
                         })
                     })
                     .collect();
@@ -434,4 +434,30 @@ fn cases() {
         }
         insta::assert_snapshot!(s.out);
     });
+}
+
+#[test]
+fn reconstruct_voted_skips_unlucky_key() {
+    use num_rational::BigRational;
+    use polycore::Primes;
+    use polycore::crt::{reconstruct_voted, reduce};
+
+    let q = |a: i64, b: i64| BigRational::new(a.into(), b.into());
+    let truth = vec![q(1, 3), q(-7, 5), q(123_456, 789)];
+    let unlucky = 2_147_483_629; // pretend this prime gives a different key
+    let got = reconstruct_voted(
+        |ps| {
+            ps.iter()
+                .map(|&p| {
+                    let v = truth
+                        .iter()
+                        .map(|r| reduce(r, p))
+                        .collect::<Option<Vec<_>>>()?;
+                    Some((u8::from(p == unlucky), v))
+                })
+                .collect()
+        },
+        Primes::below(1 << 31),
+    );
+    assert_eq!(got, Some((0, truth)));
 }

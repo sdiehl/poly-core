@@ -1,5 +1,5 @@
 use num_rational::BigRational;
-use poly_core::{combination, crt, Echelon, Fp, Gf, Lead, Order, Primes, Ring, Uni};
+use polycore::{Echelon, Fp, Gf, Lead, Order, Primes, Ring, Uni, combination, crt};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ring = Ring::new(["x", "y"], Order::Lex);

@@ -1,5 +1,8 @@
 //! Chinese remaindering and Wang's rational number reconstruction.
 
+use std::collections::HashMap;
+use std::hash::Hash;
+
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_rational::BigRational;
@@ -59,11 +62,7 @@ pub fn wang(x: &BigInt, m: &BigInt) -> Option<BigRational> {
 /// `x mod m` in the symmetric range `(-m/2, m/2]`.
 pub fn symmetric(x: &BigInt, m: &BigInt) -> BigInt {
     let r = x.mod_floor(m);
-    if &r * 2u32 > *m {
-        r - m
-    } else {
-        r
-    }
+    if &r * 2u32 > *m { r - m } else { r }
 }
 
 /// Rationals from their images modulo successive primes, accepted once one further prime agrees
@@ -108,4 +107,56 @@ pub fn reconstruct_keyed<K: Ord>(
             .and_then(|(_, xs, m)| xs.iter().map(|x| wang(x, m)).collect());
     }
     None
+}
+
+/// Rationals from images modulo batches of primes, with majority voting over keys.
+///
+/// For problems whose unlucky primes give a key that is not ordered against the lucky one, such
+/// as the leading monomials of a Groebner basis. Images are grouped by key, the most frequent group is reconstructed, and its candidate is
+/// accepted once a later prime with that key agrees. `images` receives each batch of primes at
+/// once so it can compute them in parallel, and may refuse a prime with `None`.
+pub fn reconstruct_voted<K: Clone + Eq + Hash>(
+    mut images: impl FnMut(&[u64]) -> Vec<Option<(K, Vec<u64>)>>,
+    primes: impl IntoIterator<Item = u64>,
+) -> Option<(K, Vec<BigRational>)> {
+    let mut primes = primes.into_iter();
+    let mut groups: HashMap<K, (Vec<BigInt>, BigInt, usize)> = HashMap::new();
+    let mut candidate: Option<(K, Vec<BigRational>)> = None;
+    let mut batch = 1;
+    loop {
+        let ps: Vec<u64> = primes.by_ref().take(batch).collect();
+        if ps.is_empty() {
+            return None;
+        }
+        for (&p, image) in ps.iter().zip(images(&ps)) {
+            let Some((key, values)) = image else {
+                continue;
+            };
+            if let Some((k, q)) = &candidate
+                && *k == key
+                && q.len() == values.len()
+                && q.iter().zip(&values).all(|(r, &v)| reduce(r, p) == Some(v))
+            {
+                return candidate;
+            }
+            if let Some((xs, m, n)) = groups.get_mut(&key) {
+                garner(xs, m, &values, p);
+                *n += 1;
+            } else {
+                let xs = values.iter().map(|&v| v.into()).collect();
+                groups.insert(key, (xs, p.into(), 1));
+            }
+        }
+        candidate = groups
+            .iter()
+            .max_by_key(|(_, g)| g.2)
+            .and_then(|(k, (xs, m, _))| {
+                if let Some(x) = xs.last() {
+                    wang(x, m)?;
+                }
+                let q = xs.iter().map(|x| wang(x, m)).collect::<Option<_>>()?;
+                Some((k.clone(), q))
+            });
+        batch = (batch * 2).min(64);
+    }
 }

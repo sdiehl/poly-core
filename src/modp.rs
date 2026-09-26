@@ -34,11 +34,7 @@ pub const fn mul(a: u64, b: u64, p: u64) -> u64 {
     }
     let y = (x >> 62) * c as u128 + (x as u64 & (TOP - 1)) as u128;
     let z = (y >> 62) as u64 * c + (y as u64 & (TOP - 1));
-    if z >= p {
-        z - p
-    } else {
-        z
-    }
+    if z >= p { z - p } else { z }
 }
 
 pub const fn pow(mut a: u64, mut e: u64, p: u64) -> u64 {

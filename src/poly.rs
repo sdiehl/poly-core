@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::fmt::{self, Display};
 use std::ops::{Add, Mul, Neg, Sub};
 
-use crate::field::{nat, pow, Field};
+use crate::field::{Field, nat, pow};
 use crate::monomial::{Monomial, Order};
 use crate::parse::Ring;
 use crate::uni::Uni;

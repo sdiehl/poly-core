@@ -1,13 +1,14 @@
 [package]
-name = "poly-core"
+name = "polycore"
 version = "0.1.0"
 authors = ["Stephen Diehl <stephen.m.diehl@gmail.com>"]
 categories = ["algorithms", "mathematics"]
-edition = "2021"
+edition = "2024"
 keywords = ["polynomial", "finite-field", "algebra", "groebner", "crt"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/sdiehl/poly-core"
+rust-version = "1.98"
 description = "Fields, prime fields, sparse and dense polynomials, and sparse echelon forms."
 
 [dependencies]

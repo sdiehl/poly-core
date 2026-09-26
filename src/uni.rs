@@ -1,6 +1,6 @@
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
-use crate::field::{nat, pow, Field};
+use crate::field::{Field, nat, pow};
 use crate::fp::Modular;
 use crate::monomial::{Monomial, Order};
 use crate::poly::Poly;
@@ -85,11 +85,7 @@ impl<F: Field> Uni<F> {
             .rev()
             .fold(Self::constant(F::one()), |acc, i| {
                 let acc = &acc * &acc;
-                if e >> i & 1 == 1 {
-                    &acc * self
-                } else {
-                    acc
-                }
+                if e >> i & 1 == 1 { &acc * self } else { acc }
             })
     }
 

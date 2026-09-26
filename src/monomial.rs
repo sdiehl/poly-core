@@ -4,7 +4,7 @@ use std::ops::Mul;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use crate::field::{pow, Field};
+use crate::field::{Field, pow};
 
 /// An exponent vector in one shared allocation, with its total degree cached.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]

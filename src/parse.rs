@@ -151,11 +151,7 @@ impl Ring {
             out.push_str(sign);
             out.push_str(&body);
         }
-        if out.is_empty() {
-            "0".into()
-        } else {
-            out
-        }
+        if out.is_empty() { "0".into() } else { out }
     }
 
     /// A monomial in LaTeX: `x_{1}^{2} y`.
@@ -195,11 +191,7 @@ impl Ring {
             });
             out.push_str(&body);
         }
-        if out.is_empty() {
-            "0".into()
-        } else {
-            out
-        }
+        if out.is_empty() { "0".into() } else { out }
     }
 }
 
