@@ -1,0 +1,55 @@
+---
+source: tests/snapshots.rs
+expression: s.out
+input_file: tests/cases/uni.txt
+---
+> ring lex x
+> uni (x - 1)^2*(x + 2) ; (x - 1)*(x + 3)
+gcd = x - 1
+s = 1/4
+t = -1/4*x + 1/2
+res = 0
+f' = 3*x^2 - 3
+f / g = x - 2, rem 4*x - 4
+> uni x^4 - 1 ; x^3 + x
+gcd = x^2 + 1
+s = -1
+t = x
+res = 0
+f' = 4*x^3
+f / g = x, rem -x^2 - 1
+> uni x^2 + 1 ; x^2 - 2
+gcd = 1
+s = 1/3
+t = -1/3
+res = 9
+f' = 2*x
+f / g = 1, rem 3
+> uni 3*x^5 - 2*x^2 + 7 ; x^3 - 1/2
+gcd = 1
+s = 112/10975*x^2 + 4/10975*x + 1568/10975
+t = -336/10975*x^4 - 12/10975*x^3 - 4704/10975*x^2 + 56/10975*x + 2/10975
+res = -10975/32
+f' = 15*x^4 - 4*x
+f / g = 3*x^2, rem -1/2*x^2 + 7
+> interp 0 1 2 3 ; 1 2 5 10
+x^2 + 1
+> interp -1 0 1/2 ; 2 0 1
+8/3*x^2 + 2/3*x
+> mod 101
+> uni (x - 1)^2*(x + 2) ; (x - 1)*(x + 3)
+gcd = x + 100
+s = 76
+t = 25*x + 51
+res = 0
+f' = 3*x^2 + 98
+f / g = x + 99, rem 4*x + 97
+> uni x^4 - 1 ; x^3 + x
+gcd = x^2 + 1
+s = 100
+t = x
+res = 0
+f' = 4*x^3
+f / g = x, rem 100*x^2 + 100
+> interp 0 1 2 3 ; 1 2 5 10
+x^2 + 1

@@ -1,0 +1,10 @@
+# Division by an ordered list; every result is checked against its certificate.
+ring lex x y
+divide x^2*y + x*y^2 + y^2 ; x*y - 1 ; y^2 - 1
+divide x^2*y + x*y^2 + y^2 ; y^2 - 1 ; x*y - 1
+divide x*y^2 - x ; x*y + 1 ; y^2 - 1
+divide x^3 - 2*x*y ; x^2 - 2*y
+ring grevlex x y z
+divide x^3*y*z + y^2*z^3 - 2 ; x*y - z ; y*z - 1 ; x + y + z
+spoly x^3 - 2*x*y ; x^2*y - 2*y^2 + x
+spoly x^2 + y ; y^2 + x

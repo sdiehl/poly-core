@@ -1,0 +1,219 @@
+use std::fmt;
+use std::ops::{Add, Div, Mul, Neg, Sub};
+
+use num_rational::BigRational;
+use num_traits::{One, Zero};
+
+use crate::{crt, modp};
+
+/// An element of `GF(p)` for a prime `p < 2^64` chosen at runtime.
+///
+/// `Fp::zero()` and `Fp::one()` carry no modulus (`p = 0`) and adopt the modulus of whatever they
+/// meet, so generic code that starts from `F::zero()` or `F::one()` works unchanged.
+#[derive(Clone, Copy, Debug)]
+pub struct Fp {
+    v: u64,
+    p: u64,
+}
+
+impl Fp {
+    pub const fn new(v: u64, p: u64) -> Self {
+        Self { v: v % p, p }
+    }
+
+    pub fn from_i64(x: i64, p: u64) -> Self {
+        Self {
+            v: i128::from(x).rem_euclid(i128::from(p)) as u64,
+            p,
+        }
+    }
+
+    /// `q` modulo `p`, or `None` when `p` divides its denominator.
+    pub fn from_rational(q: &BigRational, p: u64) -> Option<Self> {
+        crt::reduce(q, p).map(|v| Self { v, p })
+    }
+
+    pub const fn value(self) -> u64 {
+        self.v
+    }
+
+    /// The prime, or 0 for a constant not yet bound to one.
+    pub const fn modulus(self) -> u64 {
+        self.p
+    }
+
+    #[must_use]
+    pub fn bind(self, p: u64) -> Self {
+        if self.p == 0 && p != 0 {
+            Self::from_i64(self.v as i64, p)
+        } else {
+            self
+        }
+    }
+
+    fn unify(self, o: Self) -> (u64, u64, u64) {
+        let p = self.p.max(o.p);
+        (self.bind(p).v, o.bind(p).v, p)
+    }
+
+    fn lift(self, o: Self, wrap: fn(u64, u64) -> u64, op: fn(u64, u64, u64) -> u64) -> Self {
+        let (a, b, p) = self.unify(o);
+        let v = if p == 0 { wrap(a, b) } else { op(a, b, p) };
+        Self { v, p }
+    }
+}
+
+impl PartialEq for Fp {
+    fn eq(&self, o: &Self) -> bool {
+        let (a, b, _) = self.unify(*o);
+        a == b
+    }
+}
+
+impl Eq for Fp {}
+
+impl Add for Fp {
+    type Output = Self;
+    fn add(self, o: Self) -> Self {
+        self.lift(o, u64::wrapping_add, modp::add)
+    }
+}
+
+impl Sub for Fp {
+    type Output = Self;
+    fn sub(self, o: Self) -> Self {
+        self.lift(o, u64::wrapping_sub, modp::sub)
+    }
+}
+
+impl Mul for Fp {
+    type Output = Self;
+    fn mul(self, o: Self) -> Self {
+        self.lift(o, u64::wrapping_mul, modp::mul)
+    }
+}
+
+impl Div for Fp {
+    type Output = Self;
+    fn div(self, o: Self) -> Self {
+        assert!(!o.is_zero(), "division by zero in GF(p)");
+        let unit = |a: u64, b: u64| {
+            assert!(b == 1 || b == u64::MAX, "division of unbound constants");
+            a.wrapping_mul(b)
+        };
+        self.lift(o, unit, |a, b, p| modp::mul(a, modp::inv(b, p), p))
+    }
+}
+
+impl Neg for Fp {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self::zero() - self
+    }
+}
+
+impl Zero for Fp {
+    fn zero() -> Self {
+        Self { v: 0, p: 0 }
+    }
+    fn is_zero(&self) -> bool {
+        self.v == 0
+    }
+}
+
+impl One for Fp {
+    fn one() -> Self {
+        Self { v: 1, p: 0 }
+    }
+}
+
+impl fmt::Display for Fp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.p == 0 {
+            write!(f, "{}", self.v as i64)
+        } else {
+            write!(f, "{}", self.v)
+        }
+    }
+}
+
+/// An element of `GF(P)` for a prime `P` fixed at compile time.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Gf<const P: u64>(u64);
+
+impl<const P: u64> Gf<P> {
+    pub const fn new(v: u64) -> Self {
+        Self(v % P)
+    }
+
+    pub fn from_i64(x: i64) -> Self {
+        Self(i128::from(x).rem_euclid(i128::from(P)) as u64)
+    }
+
+    pub const fn value(self) -> u64 {
+        self.0
+    }
+}
+
+impl<const P: u64> Add for Gf<P> {
+    type Output = Self;
+    fn add(self, o: Self) -> Self {
+        Self(modp::add(self.0, o.0, P))
+    }
+}
+
+impl<const P: u64> Sub for Gf<P> {
+    type Output = Self;
+    fn sub(self, o: Self) -> Self {
+        Self(modp::sub(self.0, o.0, P))
+    }
+}
+
+impl<const P: u64> Mul for Gf<P> {
+    type Output = Self;
+    fn mul(self, o: Self) -> Self {
+        Self(modp::mul(self.0, o.0, P))
+    }
+}
+
+impl<const P: u64> Div for Gf<P> {
+    type Output = Self;
+    fn div(self, o: Self) -> Self {
+        assert!(o.0 != 0, "division by zero in GF(p)");
+        Self(modp::mul(self.0, modp::inv(o.0, P), P))
+    }
+}
+
+impl<const P: u64> Neg for Gf<P> {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self(modp::neg(self.0, P))
+    }
+}
+
+impl<const P: u64> Zero for Gf<P> {
+    fn zero() -> Self {
+        Self(0)
+    }
+    fn is_zero(&self) -> bool {
+        self.0 == 0
+    }
+}
+
+impl<const P: u64> One for Gf<P> {
+    fn one() -> Self {
+        Self(1 % P)
+    }
+}
+
+impl<const P: u64> From<u64> for Gf<P> {
+    fn from(v: u64) -> Self {
+        Self::new(v)
+    }
+}
+
+impl<const P: u64> fmt::Display for Gf<P> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}

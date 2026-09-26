@@ -1,0 +1,17 @@
+# Arithmetic, normalization and the three standard orders.
+ring grevlex x y z
+show (x + y)^3
+show (x + y)*(x - y) - x^2 + y^2
+show (x - 2*y + 3/4*z)^2
+show x*y^2 + y^3*z^0 + x^3 + z^2*x + 7
+order lex
+show x*y^2 + y^3 + x^3 + z^2*x + 7
+order grlex
+show x*y^2 + y^3 + x^3 + z^2*x + 7
+order elim 1
+show x*y^2 + y^3 + x^3 + z^2*x + 7
+order weighted
+show x*y*z + x^2*z + y^3
+eval (x + y)^3 - z ; 1 ; 2 ; 1/2
+subst x^2*y + x*z - y ; x ; 3
+show 1/(2*3) * (6*x - 12)

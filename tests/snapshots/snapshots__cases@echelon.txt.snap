@@ -1,0 +1,43 @@
+---
+source: tests/snapshots.rs
+expression: s.out
+input_file: tests/cases/echelon.txt
+---
+> echelon low ; 1 2 3 ; 4 5 6 ; 7 8 9
+rank 2 pivots [0, 1] inserted [Some(0), Some(1), None]
+row 1 used [0]
+rref [1 0 -1]
+rref [0 1 2]
+null [1 -2 1]
+> echelon high ; 1 2 3 ; 4 5 6 ; 7 8 9
+rank 2 pivots [2, 1] inserted [Some(2), Some(1), None]
+row 1 used [2]
+rref [-1 0 1]
+rref [2 1 0]
+null [1 -2 1]
+> echelon low ; 0 0 1 2 ; 1 1 0 0 ; 1 1 1 2 ; 0 2 0 1
+rank 3 pivots [0, 1, 2] inserted [Some(2), Some(0), None, Some(1)]
+rref [1 0 0 -1/2]
+rref [0 1 0 1/2]
+rref [0 0 1 2]
+null [1/2 -1/2 -2 1]
+> echelon high ; 1 -1 0 0 0 ; 0 1 -1 0 0 ; 1 0 -1 0 0 ; 0 0 0 1 1/2
+rank 3 pivots [4, 2, 1] inserted [Some(1), Some(2), None, Some(4)]
+rref [0 0 0 2 1]
+rref [-1 0 1 0 0]
+rref [-1 1 0 0 0]
+null [1 1 1 0 0]
+null [0 0 0 1 -2]
+> mod 7
+> echelon low ; 1 2 3 ; 4 5 6 ; 1 1 1
+rank 2 pivots [0, 1] inserted [Some(0), Some(1), None]
+row 1 used [0]
+rref [1 0 6]
+rref [0 1 2]
+null [1 5 1]
+> echelon low ; 3 5 0 1 ; 6 3 0 2 ; 0 0 4 4
+rank 2 pivots [0, 2] inserted [Some(0), None, Some(2)]
+rref [1 4 0 5]
+rref [0 0 1 1]
+null [3 1 0 0]
+null [2 0 6 1]

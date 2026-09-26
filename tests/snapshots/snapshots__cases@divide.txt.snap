@@ -1,0 +1,31 @@
+---
+source: tests/snapshots.rs
+expression: s.out
+input_file: tests/cases/divide.txt
+---
+> ring lex x y
+> divide x^2*y + x*y^2 + y^2 ; x*y - 1 ; y^2 - 1
+q1 = x + y
+q2 = 1
+r = x + y + 1
+> divide x^2*y + x*y^2 + y^2 ; y^2 - 1 ; x*y - 1
+q1 = x + 1
+q2 = x
+r = 2*x + 1
+> divide x*y^2 - x ; x*y + 1 ; y^2 - 1
+q1 = y
+q2 = 0
+r = -x - y
+> divide x^3 - 2*x*y ; x^2 - 2*y
+q1 = x
+r = 0
+> ring grevlex x y z
+> divide x^3*y*z + y^2*z^3 - 2 ; x*y - z ; y*z - 1 ; x + y + z
+q1 = x^2*z - z^2
+q2 = y*z^2 + z^2 + z
+q3 = x*z^2 - z^3
+r = z^4 - z^3 + z^2 + z - 2
+> spoly x^3 - 2*x*y ; x^2*y - 2*y^2 + x
+-x^2
+> spoly x^2 + y ; y^2 + x
+-x^3 + y^3
