@@ -1,0 +1,14 @@
+# Ring validation, lists of polynomials, LaTeX, and parameters in Q(a).
+badring x y x
+badring x 1y
+badring a_1 b2
+many x + y, x*y; z^2 ,
+latex 3/2*x^2*y - x*z + 1/7
+latex -x^3 + 2
+ring lex x1 y_2
+latex x1^2 - y_2/3
+ring grevlex x y
+param a ; x^2 + (a + 1)/(a - 1)*x*y + a^2 ; 2
+param a ; (a^2 - 1)/(a + 1)*x - a/a ; 0
+content 6/5*x^2 - 3/10*y
+content -4*x + 2

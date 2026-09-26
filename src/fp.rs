@@ -1,10 +1,32 @@
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::str::FromStr;
 
 use num_rational::BigRational;
 use num_traits::{One, Zero};
 
+use crate::field::Field;
 use crate::{crt, modp};
+
+/// A prime field of word-sized residues, for code that drops to bare `u64` arithmetic in
+/// [`modp`] on its inner loops.
+pub trait Modular: Field + Copy {
+    /// The prime, or 0 for a constant not yet bound to one.
+    fn modulus(&self) -> u64;
+    /// The stored residue; a signed integer in two's complement while unbound.
+    fn residue(&self) -> u64;
+    fn from_residue(v: u64, p: u64) -> Self;
+
+    /// The residue in `[0, p)`, binding an unbound constant to `p`.
+    fn residue_mod(&self, p: u64) -> u64 {
+        if self.modulus() == 0 {
+            i128::from(self.residue() as i64).rem_euclid(i128::from(p)) as u64
+        } else {
+            self.residue()
+        }
+    }
+}
 
 /// An element of `GF(p)` for a prime `p < 2^64` chosen at runtime.
 ///
@@ -17,8 +39,12 @@ pub struct Fp {
 }
 
 impl Fp {
+    /// `v` modulo `p`, or an unbound constant when `p = 0`.
     pub const fn new(v: u64, p: u64) -> Self {
-        Self { v: v % p, p }
+        Self {
+            v: if p == 0 { v } else { v % p },
+            p,
+        }
     }
 
     pub fn from_i64(x: i64, p: u64) -> Self {
@@ -40,6 +66,19 @@ impl Fp {
     /// The prime, or 0 for a constant not yet bound to one.
     pub const fn modulus(self) -> u64 {
         self.p
+    }
+
+    /// The inverse, or `None` for a non-unit: zero, a residue sharing a factor with a composite
+    /// modulus, or an unbound constant other than `1` and `-1`.
+    pub const fn try_inverse(self) -> Option<Self> {
+        match (self.p, self.v) {
+            (0, 1 | u64::MAX) => Some(self),
+            (0, _) => None,
+            (p, v) => match modp::try_inv(v, p) {
+                Some(v) => Some(Self { v, p }),
+                None => None,
+            },
+        }
     }
 
     #[must_use]
@@ -71,6 +110,41 @@ impl PartialEq for Fp {
 }
 
 impl Eq for Fp {}
+
+/// Hashes the symmetric residue, so equal elements of one field hash alike and an unbound
+/// constant hashes like its binding whenever it is below `p / 2` in magnitude.
+impl Hash for Fp {
+    fn hash<H: Hasher>(&self, h: &mut H) {
+        let v = if self.p == 0 {
+            i128::from(self.v as i64)
+        } else {
+            modp::symmetric(self.v, self.p)
+        };
+        v.hash(h);
+    }
+}
+
+impl From<i32> for Fp {
+    /// An unbound constant.
+    fn from(x: i32) -> Self {
+        Self {
+            v: i64::from(x) as u64,
+            p: 0,
+        }
+    }
+}
+
+impl Modular for Fp {
+    fn modulus(&self) -> u64 {
+        self.p
+    }
+    fn residue(&self) -> u64 {
+        self.v
+    }
+    fn from_residue(v: u64, p: u64) -> Self {
+        Self::new(v, p)
+    }
+}
 
 impl Add for Fp {
     type Output = Self;
@@ -153,6 +227,22 @@ impl<const P: u64> Gf<P> {
     pub const fn value(self) -> u64 {
         self.0
     }
+
+    pub const fn modulus(self) -> u64 {
+        P
+    }
+}
+
+impl<const P: u64> Modular for Gf<P> {
+    fn modulus(&self) -> u64 {
+        P
+    }
+    fn residue(&self) -> u64 {
+        self.0
+    }
+    fn from_residue(v: u64, _: u64) -> Self {
+        Self::new(v)
+    }
 }
 
 impl<const P: u64> Add for Gf<P> {
@@ -209,6 +299,47 @@ impl<const P: u64> One for Gf<P> {
 impl<const P: u64> From<u64> for Gf<P> {
     fn from(v: u64) -> Self {
         Self::new(v)
+    }
+}
+
+impl<const P: u64> From<u32> for Gf<P> {
+    fn from(v: u32) -> Self {
+        Self::new(v.into())
+    }
+}
+
+impl<const P: u64> From<i32> for Gf<P> {
+    fn from(x: i32) -> Self {
+        Self::from_i64(x.into())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParseFpError;
+
+impl fmt::Display for ParseFpError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("expected an optionally signed integer")
+    }
+}
+
+impl std::error::Error for ParseFpError {}
+
+/// Reduces as it reads, so any number of digits is accepted.
+impl<const P: u64> FromStr for Gf<P> {
+    type Err = ParseFpError;
+    fn from_str(s: &str) -> Result<Self, ParseFpError> {
+        let s = s.trim();
+        let (neg, digits) = s
+            .strip_prefix('-')
+            .map_or_else(|| (false, s.strip_prefix('+').unwrap_or(s)), |d| (true, d));
+        if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+            return Err(ParseFpError);
+        }
+        let v = digits.bytes().fold(Self::new(0), |acc, b| {
+            acc * Self::new(10) + Self::new(u64::from(b - b'0'))
+        });
+        Ok(if neg { -v } else { v })
     }
 }
 

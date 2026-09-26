@@ -56,29 +56,56 @@ pub fn wang(x: &BigInt, m: &BigInt) -> Option<BigRational> {
     (!s1.is_zero() && s1.abs() <= bound && r1.gcd(&s1).is_one()).then(|| BigRational::new(r1, s1))
 }
 
+/// `x mod m` in the symmetric range `(-m/2, m/2]`.
+pub fn symmetric(x: &BigInt, m: &BigInt) -> BigInt {
+    let r = x.mod_floor(m);
+    if &r * 2u32 > *m {
+        r - m
+    } else {
+        r
+    }
+}
+
 /// Rationals from their images modulo successive primes, accepted once one further prime agrees
 /// with the reconstruction. `image` may refuse an unlucky prime.
 pub fn reconstruct(
     mut image: impl FnMut(u64) -> Option<Vec<u64>>,
     primes: impl IntoIterator<Item = u64>,
 ) -> Option<Vec<BigRational>> {
-    let mut acc: Option<(Vec<BigInt>, BigInt)> = None;
+    reconstruct_keyed(|p| image(p).map(|v| ((), v)), primes).map(|((), q)| q)
+}
+
+/// [`reconstruct`] for images that also report a key.
+///
+/// The key, such as a degree or a support, is greatest at lucky primes: an image with a smaller key than the best seen is skipped as unlucky,
+/// and a greater one discards what was accumulated so far.
+pub fn reconstruct_keyed<K: Ord>(
+    mut image: impl FnMut(u64) -> Option<(K, Vec<u64>)>,
+    primes: impl IntoIterator<Item = u64>,
+) -> Option<(K, Vec<BigRational>)> {
+    let mut acc: Option<(K, Vec<BigInt>, BigInt)> = None;
     let mut candidate: Option<Vec<BigRational>> = None;
     for p in primes {
-        let Some(values) = image(p) else { continue };
-        let agrees = |q: &Vec<BigRational>| {
-            q.len() == values.len() && q.iter().zip(&values).all(|(r, &v)| reduce(r, p) == Some(v))
+        let Some((key, values)) = image(p) else {
+            continue;
         };
-        if candidate.as_ref().is_some_and(agrees) {
-            return candidate;
-        }
         match &mut acc {
-            Some((xs, m)) => garner(xs, m, &values, p),
-            None => acc = Some((values.iter().map(|&v| v.into()).collect(), p.into())),
+            Some((best, ..)) if key < *best => continue,
+            Some((best, xs, m)) if key == *best => {
+                let agrees = |q: &Vec<BigRational>| {
+                    q.len() == values.len()
+                        && q.iter().zip(&values).all(|(r, &v)| reduce(r, p) == Some(v))
+                };
+                if candidate.as_ref().is_some_and(agrees) {
+                    return acc.map(|(k, ..)| k).zip(candidate);
+                }
+                garner(xs, m, &values, p);
+            }
+            _ => acc = Some((key, values.iter().map(|&v| v.into()).collect(), p.into())),
         }
         candidate = acc
             .as_ref()
-            .and_then(|(xs, m)| xs.iter().map(|x| wang(x, m)).collect());
+            .and_then(|(_, xs, m)| xs.iter().map(|x| wang(x, m)).collect());
     }
     None
 }

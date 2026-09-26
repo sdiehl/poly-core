@@ -1,0 +1,16 @@
+# Roots over GF(p) by Cantor-Zassenhaus, and deterministic primality.
+ring lex x
+mod 101
+roots x^3 - 6*x^2 + 11*x - 6
+roots x^2 + 1
+roots x^4 - 1
+roots x^5
+mod 103
+roots x^2 + 1
+roots (x^2 + 1)*(x - 5)^2
+mod 2
+roots x^2 + x
+roots x^2 + x + 1
+mod 18446744073709551557
+roots (x - 3)*(x + 3)*(x - 12345678901234)
+prime 0 1 2 3 4 561 1105 1729 3215031751 4294967291 4294967297 18446744073709551557 18446744073709551615

@@ -2,7 +2,6 @@ use std::fmt::{self, Display};
 
 use num_bigint::BigInt;
 use num_rational::BigRational;
-use num_traits::One;
 
 use crate::field::Field;
 use crate::monomial::{Monomial, Order};
@@ -32,11 +31,27 @@ impl Display for ParseError {
 impl std::error::Error for ParseError {}
 
 impl Ring {
+    /// Panics on names [`Ring::try_new`] rejects.
     pub fn new<S: Into<String>>(names: impl IntoIterator<Item = S>, order: Order) -> Self {
-        Self {
-            names: names.into_iter().map(Into::into).collect(),
-            order,
+        Self::try_new(names, order).unwrap_or_else(|e| panic!("{e}"))
+    }
+
+    /// Rejects empty, duplicate and non-identifier names.
+    pub fn try_new<S: Into<String>>(
+        names: impl IntoIterator<Item = S>,
+        order: Order,
+    ) -> Result<Self, ParseError> {
+        let names: Vec<String> = names.into_iter().map(Into::into).collect();
+        for (i, v) in names.iter().enumerate() {
+            let fail = |msg: String| Err(ParseError { pos: i, msg });
+            if !is_ident(v) {
+                return fail(format!("invalid variable name {v:?}"));
+            }
+            if names[..i].contains(v) {
+                return fail(format!("duplicate variable {v}"));
+            }
         }
+        Ok(Self { names, order })
     }
 
     pub const fn nvars(&self) -> usize {
@@ -54,8 +69,39 @@ impl Ring {
     /// Parses `+ - * / ^`, parentheses, integers and variable names over Q. Map the result into
     /// another field with [`Poly::map`].
     pub fn parse(&self, src: &str) -> Result<Poly<Q>, ParseError> {
+        self.parse_with(src, &Q::from_integer, &[])
+    }
+
+    /// Several polynomials separated by `,` or `;`, blanks skipped.
+    pub fn parse_many(&self, src: &str) -> Result<Vec<Poly<Q>>, ParseError> {
+        let mut out = Vec::new();
+        let mut start = 0;
+        for piece in src.split([',', ';']) {
+            if !piece.trim().is_empty() {
+                let shift = |e: ParseError| ParseError {
+                    pos: e.pos + start,
+                    ..e
+                };
+                out.push(self.parse(piece).map_err(shift)?);
+            }
+            start += piece.len() + 1;
+        }
+        Ok(out)
+    }
+
+    /// Parses over any field, reading integers through `lift` and the names in `params` as the
+    /// given constants, such as the generators of `Q(a)` as [`crate::RatFunc`]. Division is by
+    /// nonzero constants only.
+    pub fn parse_with<F: Field>(
+        &self,
+        src: &str,
+        lift: &dyn Fn(BigInt) -> F,
+        params: &[(&str, F)],
+    ) -> Result<Poly<F>, ParseError> {
         let mut p = Parser {
             ring: self,
+            lift,
+            params,
             src: src.as_bytes(),
             pos: 0,
         };
@@ -111,15 +157,84 @@ impl Ring {
             out
         }
     }
+
+    /// A monomial in LaTeX: `x_{1}^{2} y`.
+    pub fn latex_monomial(&self, m: &Monomial) -> String {
+        let vars = m.exps().iter().zip(&self.names).filter(|t| *t.0 > 0);
+        let parts: Vec<String> = vars
+            .map(|(&e, v)| match e {
+                1 => latex_name(v),
+                _ => format!("{}^{{{e}}}", latex_name(v)),
+            })
+            .collect();
+        parts.join(" ")
+    }
+
+    /// `p` in LaTeX, fractions as `\frac`.
+    pub fn latex<F: Field + Display>(&self, p: &Poly<F>) -> String {
+        let mut out = String::new();
+        for (i, (m, c)) in p.terms.iter().enumerate() {
+            let s = c.to_string();
+            let (neg, mag) = s
+                .strip_prefix('-')
+                .map_or((false, s.as_str()), |r| (true, r));
+            let coeff = match mag.split_once('/') {
+                Some((a, b)) => format!("\\frac{{{a}}}{{{b}}}"),
+                None => mag.to_string(),
+            };
+            let body = match (m.is_one(), mag) {
+                (true, _) => coeff,
+                (false, "1") => self.latex_monomial(m),
+                (false, _) => format!("{coeff} {}", self.latex_monomial(m)),
+            };
+            out.push_str(match (i, neg) {
+                (0, false) => "",
+                (0, true) => "-",
+                (_, false) => " + ",
+                (_, true) => " - ",
+            });
+            out.push_str(&body);
+        }
+        if out.is_empty() {
+            "0".into()
+        } else {
+            out
+        }
+    }
 }
 
-struct Parser<'a> {
+fn is_ident(v: &str) -> bool {
+    let mut b = v.bytes();
+    b.next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == b'_')
+        && b.all(|c| c.is_ascii_alphanumeric() || c == b'_')
+}
+
+/// Trailing digits, after an optional `_`, become a subscript; other underscores are escaped.
+fn latex_name(v: &str) -> String {
+    let stem = v.trim_end_matches(|c: char| c.is_ascii_digit());
+    let digits = &v[stem.len()..];
+    let stem = stem
+        .strip_suffix('_')
+        .filter(|_| !digits.is_empty())
+        .unwrap_or(stem);
+    let stem = stem.replace('_', "\\_");
+    if digits.is_empty() || stem.is_empty() {
+        format!("{stem}{digits}")
+    } else {
+        format!("{stem}_{{{digits}}}")
+    }
+}
+
+struct Parser<'a, F> {
     ring: &'a Ring,
+    lift: &'a dyn Fn(BigInt) -> F,
+    params: &'a [(&'a str, F)],
     src: &'a [u8],
     pos: usize,
 }
 
-impl Parser<'_> {
+impl<F: Field> Parser<'_, F> {
     fn fail<T>(&self, msg: &str) -> Result<T, ParseError> {
         Err(ParseError {
             pos: self.pos,
@@ -148,11 +263,11 @@ impl Parser<'_> {
         std::str::from_utf8(&self.src[start..self.pos]).unwrap_or_default()
     }
 
-    fn constant(&self, q: Q) -> Poly<Q> {
+    fn constant(&self, q: F) -> Poly<F> {
         Poly::constant(q, self.ring.nvars(), self.ring.order.clone())
     }
 
-    fn expr(&mut self) -> Result<Poly<Q>, ParseError> {
+    fn expr(&mut self) -> Result<Poly<F>, ParseError> {
         let mut acc = self.term()?;
         loop {
             if self.eat(b'+') {
@@ -165,16 +280,16 @@ impl Parser<'_> {
         }
     }
 
-    fn term(&mut self) -> Result<Poly<Q>, ParseError> {
+    fn term(&mut self) -> Result<Poly<F>, ParseError> {
         let mut acc = self.factor()?;
         loop {
             if self.eat(b'*') {
                 acc = &acc * &self.factor()?;
             } else if self.eat(b'/') {
                 let d = self.factor()?;
-                match (d.is_constant(), d.lc()) {
-                    (true, Some(c)) => acc = acc.scale(&c.recip()),
-                    _ => return self.fail("division by a nonconstant or zero"),
+                match d.lc().filter(|_| d.is_constant()).and_then(F::inverse) {
+                    Some(c) => acc = acc.scale(&c),
+                    None => return self.fail("division by a nonconstant or zero"),
                 }
             } else {
                 return Ok(acc);
@@ -182,7 +297,7 @@ impl Parser<'_> {
         }
     }
 
-    fn factor(&mut self) -> Result<Poly<Q>, ParseError> {
+    fn factor(&mut self) -> Result<Poly<F>, ParseError> {
         if self.eat(b'-') {
             return Ok(-&self.factor()?);
         }
@@ -194,10 +309,10 @@ impl Parser<'_> {
         let Ok(e) = self.take(|b| b.is_ascii_digit()).parse::<u32>() else {
             return self.fail("expected an exponent");
         };
-        Ok((0..e).fold(self.constant(Q::one()), |acc, _| &acc * &base))
+        Ok(base.pow(e))
     }
 
-    fn atom(&mut self) -> Result<Poly<Q>, ParseError> {
+    fn atom(&mut self) -> Result<Poly<F>, ParseError> {
         match self.peek() {
             Some(b'(') => {
                 self.pos += 1;
@@ -210,14 +325,17 @@ impl Parser<'_> {
             }
             Some(b) if b.is_ascii_digit() => {
                 let n: BigInt = self.take(|b| b.is_ascii_digit()).parse().expect("digits");
-                Ok(self.constant(Q::from_integer(n)))
+                Ok(self.constant((self.lift)(n)))
             }
             Some(b) if b.is_ascii_alphabetic() || b == b'_' => {
                 let name = self
                     .take(|b| b.is_ascii_alphanumeric() || b == b'_')
                     .to_string();
-                match self.ring.names.iter().position(|v| *v == name) {
-                    Some(i) => Ok(Poly::var(i, self.ring.nvars(), self.ring.order.clone())),
+                if let Some(i) = self.ring.names.iter().position(|v| *v == name) {
+                    return Ok(Poly::var(i, self.ring.nvars(), self.ring.order.clone()));
+                }
+                match self.params.iter().find(|(v, _)| *v == name) {
+                    Some((_, c)) => Ok(self.constant(c.clone())),
                     None => self.fail(&format!("unknown variable {name}")),
                 }
             }

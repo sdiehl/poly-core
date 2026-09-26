@@ -53,9 +53,28 @@ pub const fn pow(mut a: u64, mut e: u64, p: u64) -> u64 {
     r
 }
 
-/// The inverse by Fermat, so `p` must be prime and `a` nonzero.
+/// The inverse of `a` modulo any `m`, or `None` unless `gcd(a, m) = 1`.
+pub const fn try_inv(a: u64, m: u64) -> Option<u64> {
+    let (mut r0, mut r1) = (m as i128, (a % m) as i128);
+    let (mut s0, mut s1) = (0i128, 1i128);
+    while r1 != 0 {
+        let q = r0 / r1;
+        (r0, r1) = (r1, r0 - q * r1);
+        (s0, s1) = (s1, s0 - q * s1);
+    }
+    if r0 == 1 {
+        Some(s0.rem_euclid(m as i128) as u64)
+    } else {
+        None
+    }
+}
+
+/// The inverse of a unit `a` modulo `p`.
 pub const fn inv(a: u64, p: u64) -> u64 {
-    pow(a, p - 2, p)
+    match try_inv(a, p) {
+        Some(x) => x,
+        None => panic!("not invertible"),
+    }
 }
 
 /// The residue as a signed integer in `(-p/2, p/2]`, which shows small integers as themselves.
@@ -67,27 +86,9 @@ pub const fn symmetric(a: u64, p: u64) -> i128 {
     }
 }
 
-/// Deterministic Miller-Rabin for all `u64`.
-pub fn is_prime(n: u64) -> bool {
-    let bases = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
-    if n < 2 {
-        return false;
-    }
-    if let Some(&b) = bases.iter().find(|&&b| n.is_multiple_of(b)) {
-        return n == b;
-    }
-    let s = (n - 1).trailing_zeros();
-    let d = (n - 1) >> s;
-    bases.iter().all(|&a| {
-        let mut x = pow(a, d, n);
-        if x == 1 || x == n - 1 {
-            return true;
-        }
-        (1..s).any(|_| {
-            x = mul(x, x, n);
-            x == n - 1
-        })
-    })
+/// Deterministic for every `u64`, by [`machine_prime`].
+pub const fn is_prime(n: u64) -> bool {
+    machine_prime::is_prime(n)
 }
 
 /// Primes descending from `2^62`, or from any start with [`Primes::below`].

@@ -13,20 +13,26 @@
 )]
 
 pub mod crt;
+pub mod dense;
 mod echelon;
 mod field;
 mod fp;
+pub mod interp;
 pub mod modp;
 mod monomial;
 mod parse;
 mod poly;
+mod ratfunc;
+mod rational;
+pub mod sample;
 mod uni;
 
 pub use echelon::{Echelon, Lead, SparseRow};
-pub use field::{pow, Field};
-pub use fp::{Fp, Gf};
+pub use field::{nat, pow, Field};
+pub use fp::{Fp, Gf, Modular, ParseFpError};
 pub use modp::Primes;
 pub use monomial::{Monomial, Order};
 pub use parse::{ParseError, Ring};
 pub use poly::{combination, Poly, Term};
+pub use ratfunc::RatFunc;
 pub use uni::Uni;

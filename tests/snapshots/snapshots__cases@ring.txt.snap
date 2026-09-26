@@ -1,0 +1,36 @@
+---
+source: tests/snapshots.rs
+expression: s.out
+input_file: tests/cases/ring.txt
+---
+> badring x y x
+at 2: duplicate variable x
+> badring x 1y
+at 1: invalid variable name "1y"
+> badring a_1 b2
+ok ["a_1", "b2"]
+> many x + y, x*y; z^2 ,
+x + y
+x*y
+z^2
+> latex 3/2*x^2*y - x*z + 1/7
+\frac{3}{2} x^{2} y - x z + \frac{1}{7}
+> latex -x^3 + 2
+-x^{3} + 2
+> ring lex x1 y_2
+> latex x1^2 - y_2/3
+x_{1}^{2} - \frac{1}{3} y_{2}
+> ring grevlex x y
+> param a ; x^2 + (a + 1)/(a - 1)*x*y + a^2 ; 2
+[x^2] (1) / (1)
+[x*y] (a + 1) / (a - 1)
+[1] (a^2) / (1)
+at a = 2: x^2 + 3*x*y + 4
+> param a ; (a^2 - 1)/(a + 1)*x - a/a ; 0
+[x] (a - 1) / (1)
+[1] (-1) / (1)
+at a = 0: -x - 1
+> content 6/5*x^2 - 3/10*y
+3/10 * (4*x^2 - y)
+> content -4*x + 2
+-2 * (2*x - 1)

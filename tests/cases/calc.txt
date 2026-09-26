@@ -1,0 +1,6 @@
+# Derivatives, powers, permutations, and coefficients in the first variable.
+ring grevlex x y z
+calc x^2*y + 3*x*y*z - y + 2
+calc (x + 1)*(y - z)
+mod 7
+calc x^7*y + x*y^7

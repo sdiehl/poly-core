@@ -1,7 +1,10 @@
 use std::cmp::Ordering;
+use std::fmt;
 use std::ops::Mul;
 use std::str::FromStr;
 use std::sync::Arc;
+
+use crate::field::{pow, Field};
 
 /// An exponent vector in one shared allocation, with its total degree cached.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -66,6 +69,15 @@ impl Monomial {
             .all(|(a, b)| *a == 0 || *b == 0)
     }
 
+    /// The value at `x`.
+    pub fn eval<F: Field>(&self, x: &[F]) -> F {
+        self.exps
+            .iter()
+            .zip(x)
+            .filter(|t| *t.0 > 0)
+            .fold(F::one(), |v, (&e, xi)| v * pow(xi, e.into()))
+    }
+
     fn zip(&self, o: &Self, f: impl Fn(u32, u32) -> u32) -> Self {
         debug_assert_eq!(self.nvars(), o.nvars());
         Self::new(
@@ -82,6 +94,24 @@ impl Mul for &Monomial {
     type Output = Monomial;
     fn mul(self, o: Self) -> Monomial {
         self.zip(o, |a, b| a + b)
+    }
+}
+
+/// `x0*x1^2`, or `1`.
+impl fmt::Display for Monomial {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_one() {
+            return f.write_str("1");
+        }
+        let mut sep = "";
+        for (i, &e) in self.exps.iter().enumerate().filter(|t| *t.1 > 0) {
+            write!(f, "{sep}x{i}")?;
+            if e > 1 {
+                write!(f, "^{e}")?;
+            }
+            sep = "*";
+        }
+        Ok(())
     }
 }
 
@@ -109,6 +139,29 @@ impl Order {
     /// Graded reverse lex on the first `k` variables, then on the remaining `rest`.
     pub fn elimination(k: usize, rest: usize) -> Self {
         Self::block(vec![(Self::GRevLex, k), (Self::GRevLex, rest)])
+    }
+
+    /// Whether every monomial involving `x_0..x_{k-1}` exceeds every one free of them, so a Groebner
+    /// basis meets `F[x_k..]` in a basis of the elimination ideal.
+    pub fn eliminates(&self, k: usize) -> bool {
+        match self {
+            _ if k == 0 => true,
+            Self::Lex => true,
+            Self::GrLex | Self::GRevLex => false,
+            Self::Weighted(w, _) => {
+                w.len() >= k && w[..k].iter().all(|&x| x > 0) && w[k..].iter().all(|&x| x == 0)
+            }
+            Self::Block(blocks) => {
+                let mut start = 0;
+                for (order, size) in blocks.iter() {
+                    if k < start + size {
+                        return order.eliminates(k - start);
+                    }
+                    start += size;
+                }
+                true
+            }
+        }
     }
 
     pub fn compare(&self, a: &Monomial, b: &Monomial) -> Ordering {

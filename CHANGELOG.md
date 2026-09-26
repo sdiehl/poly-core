@@ -11,4 +11,9 @@
 - Sparse multivariate `Poly<F>` with division certificates.
 - Dense univariate `Uni<F>` with gcd, Bezout, resultant, interpolation.
 - Sparse `Echelon<F>` with RREF, null space, pivot recording.
-- `Ring` parser and printer for named variables.
+- `Ring` parser and printer for named variables, with validation, parameters, lists and LaTeX.
+- Primality by `machine-prime`, `Modular` trait over `Fp` and `Gf<P>`.
+- `Uni` powers, composition, integral, exact division and roots over `GF(p)`.
+- `Poly` powers, derivatives, permutations, line and partial evaluation, coefficients in one variable.
+- `RatFunc<F>`, content and primitive parts over Q, keyed reconstruction.
+- `interp` (Newton, Thiele, Berlekamp-Massey, Vandermonde), `dense` linear algebra, `sample` and `BlackBox`.

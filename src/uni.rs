@@ -1,8 +1,10 @@
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
-use crate::field::{pow, Field};
+use crate::field::{nat, pow, Field};
+use crate::fp::Modular;
 use crate::monomial::{Monomial, Order};
 use crate::poly::Poly;
+use crate::sample::Rng;
 
 /// A dense univariate polynomial by ascending power, without trailing zeros.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -71,6 +73,50 @@ impl<F: Field> Uni<F> {
         (Self::new(q), Self::new(r))
     }
 
+    /// The quotient when `d` divides `self`.
+    pub fn exact(&self, d: &Self) -> Option<Self> {
+        let (q, r) = self.divrem(d);
+        r.is_zero().then_some(q)
+    }
+
+    #[must_use]
+    pub fn pow(&self, e: u32) -> Self {
+        (0..u32::BITS - e.leading_zeros())
+            .rev()
+            .fold(Self::constant(F::one()), |acc, i| {
+                let acc = &acc * &acc;
+                if e >> i & 1 == 1 {
+                    &acc * self
+                } else {
+                    acc
+                }
+            })
+    }
+
+    /// `self^e mod f`.
+    #[must_use]
+    pub fn powmod(&self, e: u64, f: &Self) -> Self {
+        let base = self % f;
+        (0..u64::BITS - e.leading_zeros())
+            .rev()
+            .fold(&Self::constant(F::one()) % f, |acc, i| {
+                let acc = &(&acc * &acc) % f;
+                if e >> i & 1 == 1 {
+                    &(&acc * &base) % f
+                } else {
+                    acc
+                }
+            })
+    }
+
+    /// `self(g)`.
+    #[must_use]
+    pub fn compose(&self, g: &Self) -> Self {
+        self.0.iter().rev().fold(Self::zero(), |acc, c| {
+            &(&acc * g) + &Self::constant(c.clone())
+        })
+    }
+
     pub fn eval(&self, x: &F) -> F {
         self.0
             .iter()
@@ -86,6 +132,17 @@ impl<F: Field> Uni<F> {
             a.clone() * k.clone()
         });
         Self::new(v.collect())
+    }
+
+    /// The antiderivative with zero constant term. Panics in characteristic `p` at degree `p - 1`.
+    #[must_use]
+    pub fn integral(&self) -> Self {
+        let v = self
+            .0
+            .iter()
+            .enumerate()
+            .map(|(i, a)| a.clone() / nat::<F>(i as u64 + 1));
+        Self::new(std::iter::once(F::zero()).chain(v).collect())
     }
 
     /// The monic gcd.
@@ -170,6 +227,54 @@ impl<F: Field> Uni<F> {
             v[m.exps()[k] as usize] = c.clone();
         }
         Some(Self::new(v))
+    }
+}
+
+impl<F: Modular> Uni<F> {
+    /// The distinct roots in `GF(p)`, ascending by residue: the part of `gcd(f, x^p - x)` that
+    /// splits into linear factors, then Cantor-Zassenhaus equal degree splitting.
+    pub fn roots(&self) -> Vec<F> {
+        let p = self.0.iter().map(Modular::modulus).max().unwrap_or(0);
+        assert!(p != 0 || self.deg() == 0, "roots need a bound modulus");
+        if self.deg() == 0 {
+            return Vec::new();
+        }
+        let lift = |v: u64| F::from_residue(v, p);
+        let mut out: Vec<F> = if p == 2 {
+            (0..2)
+                .map(lift)
+                .filter(|a| self.eval(a).is_zero())
+                .collect()
+        } else {
+            let f = self.monic();
+            let x = Self::new(vec![lift(0), lift(1)]);
+            let g = f.gcd(&(&x.powmod(p, &f) - &x));
+            let mut out = Vec::new();
+            split(&g, p, &mut Rng::new(p), &mut out);
+            out
+        };
+        out.sort_by_key(|a| a.residue_mod(p));
+        out
+    }
+}
+
+fn split<F: Modular>(g: &Uni<F>, p: u64, rng: &mut Rng, out: &mut Vec<F>) {
+    match g.deg() {
+        0 => {}
+        1 => out.push(-(g.0[0] / g.0[1])),
+        _ => loop {
+            let lin = Uni::new(vec![
+                F::from_residue(rng.nonzero(p), p),
+                F::from_residue(1, p),
+            ]);
+            let h = g.gcd(&(&lin.powmod((p - 1) / 2, g) - &Uni::constant(F::one())));
+            if 0 < h.deg() && h.deg() < g.deg() {
+                let rest = g / &h;
+                split(&h, p, rng, out);
+                split(&rest, p, rng, out);
+                return;
+            }
+        },
     }
 }
 

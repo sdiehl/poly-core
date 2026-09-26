@@ -1,8 +1,12 @@
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
+use std::fmt::{self, Display};
 use std::ops::{Add, Mul, Neg, Sub};
 
-use crate::field::{pow, Field};
+use crate::field::{nat, pow, Field};
 use crate::monomial::{Monomial, Order};
+use crate::parse::Ring;
+use crate::uni::Uni;
 
 pub type Term<F> = (Monomial, F);
 
@@ -46,7 +50,13 @@ impl<F: Field> Poly<F> {
     }
 
     pub fn var(i: usize, nvars: usize, order: Order) -> Self {
-        Self::new(vec![(Monomial::var(i, nvars), F::one())], nvars, order)
+        Self::monomial(Monomial::var(i, nvars), order)
+    }
+
+    /// The monomial `m` with coefficient one.
+    pub fn monomial(m: Monomial, order: Order) -> Self {
+        let n = m.nvars();
+        Self::new(vec![(m, F::one())], n, order)
     }
 
     fn with(&self, terms: Vec<Term<F>>) -> Self {
@@ -95,6 +105,43 @@ impl<F: Field> Poly<F> {
         Poly::new(terms, self.nvars, self.order.clone())
     }
 
+    /// [`Poly::map`] by a partial map, such as reduction modulo a prime that may divide a
+    /// denominator.
+    pub fn try_map<G: Field>(&self, f: impl Fn(&F) -> Option<G>) -> Option<Poly<G>> {
+        let terms = self.terms.iter().map(|(m, c)| Some((m.clone(), f(c)?)));
+        Some(Poly::new(
+            terms.collect::<Option<_>>()?,
+            self.nvars,
+            self.order.clone(),
+        ))
+    }
+
+    pub fn support(&self) -> Vec<Monomial> {
+        self.terms.iter().map(|t| t.0.clone()).collect()
+    }
+
+    /// The largest monomial dividing every term, `1` for zero.
+    pub fn min_exps(&self) -> Monomial {
+        let mut it = self.terms.iter().map(|t| t.0.exps());
+        let Some(first) = it.next() else {
+            return Monomial::one(self.nvars);
+        };
+        let e = it.fold(first.to_vec(), |mut acc, e| {
+            acc.iter_mut().zip(e).for_each(|(a, b)| *a = (*a).min(*b));
+            acc
+        });
+        Monomial::new(e)
+    }
+
+    /// Variable `i` of the result is variable `perm[i]` of `self`.
+    #[must_use]
+    pub fn permute(&self, perm: &[usize]) -> Self {
+        let terms = self.terms.iter().map(|(m, c)| {
+            let e: Vec<u32> = perm.iter().map(|&i| m.exps()[i]).collect();
+            (Monomial::new(e), c.clone())
+        });
+        Self::new(terms.collect(), perm.len(), self.order.clone())
+    }
     #[must_use]
     pub fn scale(&self, c: &F) -> Self {
         if c.is_zero() {
@@ -124,44 +171,158 @@ impl<F: Field> Poly<F> {
             .map_or_else(|| self.clone(), |l| self.scale(&l))
     }
 
-    /// `self - c * m * g` in one merge.
+    /// `self - c * m * g` in one merge, shifting `g` as it goes.
     #[must_use]
     pub fn sub_mul(&self, c: &F, m: &Monomial, g: &Self) -> Self {
-        self.merge(&g.mul_term(&-c.clone(), m))
+        debug_assert_eq!(self.nvars, g.nvars);
+        self.with(merge(
+            &self.order,
+            self.terms.iter().cloned(),
+            shifted(g, &-c.clone(), m),
+        ))
     }
 
     fn merge(&self, o: &Self) -> Self {
         debug_assert_eq!(self.nvars, o.nvars);
-        let mut out = Vec::with_capacity(self.terms.len() + o.terms.len());
-        let (mut a, mut b) = (self.terms.iter().peekable(), o.terms.iter().peekable());
-        while let (Some(x), Some(y)) = (a.peek(), b.peek()) {
-            match self.order.compare(&x.0, &y.0) {
-                Ordering::Greater => out.push(a.next().cloned().expect("peeked")),
-                Ordering::Less => out.push(b.next().cloned().expect("peeked")),
-                Ordering::Equal => {
-                    let c = x.1.clone() + y.1.clone();
-                    if !c.is_zero() {
-                        out.push((x.0.clone(), c));
-                    }
-                    a.next();
-                    b.next();
-                }
+        self.with(merge(
+            &self.order,
+            self.terms.iter().cloned(),
+            o.terms.iter().cloned(),
+        ))
+    }
+
+    #[must_use]
+    pub fn pow(&self, mut e: u32) -> Self {
+        let (mut base, mut acc) = (
+            self.clone(),
+            Self::constant(F::one(), self.nvars, self.order.clone()),
+        );
+        while e > 0 {
+            if e & 1 == 1 {
+                acc = &acc * &base;
+            }
+            e >>= 1;
+            if e > 0 {
+                base = &base * &base;
             }
         }
-        out.extend(a.cloned());
-        out.extend(b.cloned());
-        self.with(out)
+        acc
+    }
+
+    /// The partial derivative in `x_k`.
+    #[must_use]
+    pub fn derivative(&self, k: usize) -> Self {
+        let terms = self
+            .terms
+            .iter()
+            .filter(|t| t.0.exps()[k] > 0)
+            .map(|(m, c)| {
+                let mut e = m.exps().to_vec();
+                let d = e[k];
+                e[k] -= 1;
+                (Monomial::new(e), c.clone() * nat(d.into()))
+            });
+        Self::new(terms.collect(), self.nvars, self.order.clone())
     }
 
     pub fn eval(&self, x: &[F]) -> F {
-        self.terms.iter().fold(F::zero(), |acc, (m, c)| {
+        self.terms
+            .iter()
+            .fold(F::zero(), |acc, (m, c)| acc + c.clone() * m.eval(x))
+    }
+
+    /// Substitutes `x[i]` for every `x_i` with `i != k`, leaving a polynomial in `x_k`.
+    pub fn eval_except(&self, k: usize, x: &[F]) -> Uni<F> {
+        let mut d = vec![F::zero(); self.degree(k) as usize + 1];
+        for (m, c) in &self.terms {
             let v = m
                 .exps()
                 .iter()
-                .zip(x)
-                .fold(c.clone(), |v, (&e, xi)| v * pow(xi, e.into()));
-            acc + v
-        })
+                .enumerate()
+                .filter(|&(i, &e)| i != k && e > 0);
+            let v = v.fold(c.clone(), |v, (i, &e)| v * pow(&x[i], e.into()));
+            let j = m.exps()[k] as usize;
+            d[j] = d[j].clone() + v;
+        }
+        Uni::new(d)
+    }
+
+    /// The restriction to the line `x_i = z_i * t + s_i`, as a polynomial in `t`.
+    pub fn on_line(&self, z: &[F], s: &[F]) -> Uni<F> {
+        let lines: Vec<Uni<F>> = z
+            .iter()
+            .zip(s)
+            .map(|(a, b)| Uni::new(vec![b.clone(), a.clone()]))
+            .collect();
+        let mut powers: Vec<Vec<Uni<F>>> = vec![vec![Uni::constant(F::one())]; lines.len()];
+        let mut out = Uni::zero();
+        for (m, c) in &self.terms {
+            let mut t = Uni::constant(c.clone());
+            for (i, &e) in m.exps().iter().enumerate().filter(|t| *t.1 > 0) {
+                while powers[i].len() <= e as usize {
+                    let next = &powers[i][powers[i].len() - 1] * &lines[i];
+                    powers[i].push(next);
+                }
+                t = &t * &powers[i][e as usize];
+            }
+            out = &out + &t;
+        }
+        out
+    }
+
+    /// The coefficients in `x_k`: for each monomial in the other variables, descending, the
+    /// polynomial in `x_k` multiplying it.
+    pub fn coeffs_in(&self, k: usize) -> Vec<(Monomial, Uni<F>)> {
+        let mut groups: BTreeMap<Monomial, Vec<F>> = BTreeMap::new();
+        for (m, c) in &self.terms {
+            let mut e = m.exps().to_vec();
+            let i = std::mem::take(&mut e[k]) as usize;
+            let v = groups.entry(Monomial::new(e)).or_default();
+            if v.len() <= i {
+                v.resize(i + 1, F::zero());
+            }
+            v[i] = c.clone();
+        }
+        let mut out: Vec<(Monomial, Uni<F>)> =
+            groups.into_iter().map(|(m, v)| (m, Uni::new(v))).collect();
+        out.sort_by(|a, b| self.order.compare(&b.0, &a.0));
+        out
+    }
+
+    /// The inverse of [`Poly::coeffs_in`].
+    pub fn from_coeffs_in(
+        k: usize,
+        nvars: usize,
+        order: Order,
+        groups: impl IntoIterator<Item = (Monomial, Uni<F>)>,
+    ) -> Self {
+        let mut terms = Vec::new();
+        for (m, u) in groups {
+            for (i, c) in u.0.into_iter().enumerate() {
+                let mut e = m.exps().to_vec();
+                e[k] = i as u32;
+                terms.push((Monomial::new(e), c));
+            }
+        }
+        Self::new(terms, nvars, order)
+    }
+
+    /// The content in `F[x_k]`: the monic gcd of the coefficients in [`Poly::coeffs_in`].
+    pub fn content_in(&self, k: usize) -> Uni<F> {
+        self.coeffs_in(k)
+            .iter()
+            .fold(Uni::zero(), |g, (_, u)| g.gcd(u))
+    }
+
+    /// The content in `F[x_k]` and the primitive part.
+    pub fn primitive_in(&self, k: usize) -> (Uni<F>, Self) {
+        let c = self.content_in(k);
+        if c.deg() == 0 {
+            return (c, self.clone());
+        }
+        let groups = self.coeffs_in(k).into_iter().map(|(m, u)| (m, &u / &c));
+        let p = Self::from_coeffs_in(k, self.nvars, self.order.clone(), groups);
+        (c, p)
     }
 
     /// Substitutes `a` for `x_k`.
@@ -175,10 +336,12 @@ impl<F: Field> Poly<F> {
         Self::new(terms.collect(), self.nvars, self.order.clone())
     }
 
-    /// The S-polynomial of two nonzero polynomials.
+    /// The S-polynomial, zero if either is.
     #[must_use]
     pub fn spoly(&self, o: &Self) -> Self {
-        let ((m1, c1), (m2, c2)) = (self.lt().expect("nonzero"), o.lt().expect("nonzero"));
+        let (Some((m1, c1)), Some((m2, c2))) = (self.lt(), o.lt()) else {
+            return self.with(Vec::new());
+        };
         let l = m1.lcm(m2);
         let a = self.mul_term(&(F::one() / c1.clone()), &l.quo(m1).expect("lcm"));
         a.sub_mul(&(F::one() / c2.clone()), &l.quo(m2).expect("lcm"), o)
@@ -188,27 +351,27 @@ impl<F: Field> Poly<F> {
     /// leading monomial, each step reducing by the first divisor that applies.
     pub fn divide(&self, divs: &[Self]) -> (Vec<Self>, Self) {
         let mut q: Vec<Vec<Term<F>>> = vec![Vec::new(); divs.len()];
-        let mut rem = Vec::new();
-        let mut work = self.clone();
-        while let Some((m, c)) = work.lt().cloned() {
-            let hit = divs.iter().enumerate().find_map(|(i, g)| {
+        let (mut rem, mut work, mut i) = (Vec::new(), self.terms.clone(), 0);
+        while let Some((m, c)) = work.get(i) {
+            let hit = divs.iter().enumerate().find_map(|(j, g)| {
                 let (gm, gc) = g.lt()?;
-                Some((i, m.quo(gm)?, c.clone() / gc.clone()))
+                Some((j, m.quo(gm)?, c.clone() / gc.clone()))
             });
-            match hit {
-                Some((i, t, k)) => {
-                    work = work.sub_mul(&k, &t, &divs[i]);
-                    q[i].push((t, k));
-                }
-                None => {
-                    rem.push(work.terms.remove(0));
-                }
-            }
+            let Some((j, t, k)) = hit else {
+                i += 1;
+                continue;
+            };
+            rem.extend(work.drain(..i));
+            work = merge(
+                &self.order,
+                work.into_iter(),
+                shifted(&divs[j], &-k.clone(), &t),
+            );
+            i = 0;
+            q[j].push((t, k));
         }
-        let q = q
-            .into_iter()
-            .map(|t| Self::new(t, self.nvars, self.order.clone()))
-            .collect();
+        rem.extend(work);
+        let q = q.into_iter().map(|t| self.with(t)).collect();
         (q, self.with(rem))
     }
 
@@ -216,6 +379,57 @@ impl<F: Field> Poly<F> {
     #[must_use]
     pub fn reduce(&self, divs: &[Self]) -> Self {
         self.divide(divs).1
+    }
+}
+
+/// The terms of `c * m * g`, still descending.
+fn shifted<'a, F: Field>(
+    g: &'a Poly<F>,
+    c: &'a F,
+    m: &'a Monomial,
+) -> impl Iterator<Item = Term<F>> + 'a {
+    let live = !c.is_zero();
+    g.terms
+        .iter()
+        .filter(move |_| live)
+        .map(move |(n, a)| (n * m, a.clone() * c.clone()))
+}
+
+/// Merges two descending term streams, adding like terms and dropping cancellations.
+fn merge<F: Field>(
+    order: &Order,
+    a: impl Iterator<Item = Term<F>>,
+    b: impl Iterator<Item = Term<F>>,
+) -> Vec<Term<F>> {
+    let (mut a, mut b) = (a.peekable(), b.peekable());
+    let mut out = Vec::with_capacity(a.size_hint().0 + b.size_hint().0);
+    loop {
+        let side = match (a.peek(), b.peek()) {
+            (Some(x), Some(y)) => order.compare(&x.0, &y.0),
+            (Some(_), None) => Ordering::Greater,
+            (None, Some(_)) => Ordering::Less,
+            (None, None) => return out,
+        };
+        match side {
+            Ordering::Greater => out.extend(a.next()),
+            Ordering::Less => out.extend(b.next()),
+            Ordering::Equal => {
+                if let (Some((m, x)), Some((_, y))) = (a.next(), b.next()) {
+                    let c = x + y;
+                    if !c.is_zero() {
+                        out.push((m, c));
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// With variables named `x0, x1, ...`.
+impl<F: Field + Display> Display for Poly<F> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let names = (0..self.nvars).map(|i| format!("x{i}"));
+        f.write_str(&Ring::new(names, self.order.clone()).show(self))
     }
 }
 
@@ -257,9 +471,12 @@ impl<F: Field> Sub for &Poly<F> {
 impl<F: Field> Mul for &Poly<F> {
     type Output = Poly<F>;
     fn mul(self, o: Self) -> Poly<F> {
-        let zero = self.with(Vec::new());
-        o.terms
-            .iter()
-            .fold(zero, |acc, (m, c)| acc.merge(&self.mul_term(c, m)))
+        o.terms.iter().fold(self.with(Vec::new()), |acc, (m, c)| {
+            self.with(merge(
+                &self.order,
+                acc.terms.into_iter(),
+                shifted(self, c, m),
+            ))
+        })
     }
 }

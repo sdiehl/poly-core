@@ -40,3 +40,18 @@ pub fn pow<F: Field>(x: &F, mut e: u64) -> F {
     }
     acc
 }
+
+/// `n` as a field element, by doubling.
+pub fn nat<F: Field>(n: u64) -> F {
+    let two = F::one() + F::one();
+    (0..u64::BITS - n.leading_zeros())
+        .rev()
+        .fold(F::zero(), |acc, i| {
+            let acc = acc * two.clone();
+            if n >> i & 1 == 1 {
+                acc + F::one()
+            } else {
+                acc
+            }
+        })
+}

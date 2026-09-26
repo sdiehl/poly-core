@@ -2,13 +2,15 @@
 
 A shared polynomial trait foundation for fields, word-sized prime fields, Chinese remaindering, sparse multivariate and dense univariate polynomials, and a sparse incremental echelon form.
 
-- [`Field`](src/field.rs): any `Clone + PartialEq + Debug + Zero + One + Neg + Sub + Div` type, by a blanket impl.
-- [`Fp`](src/fp.rs) (runtime prime below `2^64`), [`Gf<P>`](src/fp.rs) (const prime), [`modp`](src/modp.rs) bare `u64` arithmetic, [`Primes`](src/modp.rs) descending from `2^62`.
-- [`crt`](src/crt.rs): Garner steps, `crt`, Wang rational reconstruction, and `reconstruct` which lifts images until one more prime agrees.
-- [`Monomial`](src/monomial.rs), [`Order`](src/monomial.rs) (lex, grlex, grevlex, weighted, block), sparse [`Poly<F>`](src/poly.rs) with arithmetic, evaluation, S-polynomials, `divide` by a list and `combination` to check its certificate.
-- [`Uni<F>`](src/uni.rs): divrem, gcd, Bezout, resultant, derivative, Newton interpolation.
-- [`Echelon<F>`](src/echelon.rs) over [`SparseRow<F>`](src/echelon.rs): insert, reduce, solve, RREF, null space, low or high leading column, optional pivot recording.
-- [`Ring`](src/parse.rs): parse and print polynomials with named variables.
+- [`Field`](src/field.rs): blanket trait over the field operators.
+- [`Fp`](src/fp.rs), [`Gf<P>`](src/fp.rs): prime fields below `2^64`.
+- [`Poly<F>`](src/poly.rs), [`Monomial`](src/monomial.rs), [`Order`](src/monomial.rs): sparse multivariate polynomials.
+- [`Uni<F>`](src/uni.rs): dense univariate polynomials.
+- [`RatFunc<F>`](src/ratfunc.rs): univariate rational functions.
+- [`Echelon<F>`](src/echelon.rs), [`dense`](src/dense.rs): sparse and dense linear algebra.
+- [`crt`](src/crt.rs): Chinese remaindering and rational reconstruction.
+- [`interp`](src/interp.rs): Newton, Thiele, Berlekamp-Massey.
+- [`Ring`](src/parse.rs): parsing and printing.
 
 `Field` is operator-based rather than method-based (`add`, `multiply`, ...) so that `BigRational`, `Fp`, and extensions can be fields without wrappers or impls, generic code reads as the mathematics does, and nothing new is needed from `num-traits`. The cost is some `clone()` calls on big coefficients but whatever.
 

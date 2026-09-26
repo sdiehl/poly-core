@@ -1,0 +1,35 @@
+---
+source: tests/snapshots.rs
+expression: s.out
+input_file: tests/cases/calc.txt
+---
+> ring grevlex x y z
+> calc x^2*y + 3*x*y*z - y + 2
+d/dx = 2*x*y + 3*y*z
+d/dy = x^2 + 3*x*z - 1
+d/dz = 3*x*y
+^2 = x^4*y^2 + 6*x^3*y^2*z + 9*x^2*y^2*z^2 - 2*x^2*y^2 - 6*x*y^2*z + 4*x^2*y + 12*x*y*z + y^2 - 4*y + 4
+reversed = 3*x*y*z + y*z^2 - y + 2
+content in x0 = 1, primitive = x^2*y + 3*x*y*z - y + 2
+[x1*x2] 3*x
+[x1] x^2 - 1
+[1] 2
+> calc (x + 1)*(y - z)
+d/dx = y - z
+d/dy = x + 1
+d/dz = -x - 1
+^2 = x^2*y^2 - 2*x^2*y*z + x^2*z^2 + 2*x*y^2 - 4*x*y*z + 2*x*z^2 + y^2 - 2*y*z + z^2
+reversed = -x*z + y*z - x + y
+content in x0 = x + 1, primitive = y - z
+[x1] x + 1
+[x2] -x - 1
+> mod 7
+> calc x^7*y + x*y^7
+d/dx = y^7
+d/dy = x^7
+d/dz = 0
+^2 = x^14*y^2 + 2*x^8*y^8 + x^2*y^14
+reversed = y^7*z + y*z^7
+content in x0 = x, primitive = x^6*y + y^7
+[x1^7] x
+[x1] x^7
