@@ -3,7 +3,18 @@ name = "polycore"
 version = "0.1.0"
 authors = ["Stephen Diehl <stephen.m.diehl@gmail.com>"]
 categories = ["algorithms", "mathematics"]
+documentation = "https://docs.rs/polycore"
 edition = "2024"
+homepage = "https://github.com/sdiehl/poly-core"
+include = [
+  "src/**/*",
+  "examples/**/*",
+  "tests/**/*",
+  "README.md",
+  "CHANGELOG.md",
+  "LICENSE",
+  "Cargo.toml",
+]
 keywords = ["polynomial", "finite-field", "algebra", "groebner", "crt"]
 license = "MIT"
 readme = "README.md"
