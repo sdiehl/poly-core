@@ -1,0 +1,27 @@
+[package]
+name = "polyfactor"
+version.workspace = true
+authors.workspace = true
+categories.workspace = true
+documentation = "https://docs.rs/polyfactor"
+edition.workspace = true
+homepage.workspace = true
+keywords = ["polynomial", "factorization", "berlekamp", "number-field", "algebra"]
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Univariate factoring over prime fields, the rationals and number fields."
+
+[dependencies]
+num-bigint.workspace = true
+num-integer.workspace = true
+num-rational.workspace = true
+num-traits.workspace = true
+polycore.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+
+[lints]
+workspace = true

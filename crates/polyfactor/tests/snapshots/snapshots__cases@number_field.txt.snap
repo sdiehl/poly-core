@@ -1,0 +1,48 @@
+---
+source: crates/polyfactor/tests/snapshots.rs
+expression: s.out
+input_file: crates/polyfactor/tests/cases/number_field.txt
+---
+> field a^2 - 2 ; 2
+> alg a
+norm -2, trace 0, positive true, inverse 1/2*a
+> alg 1 - a
+norm -1, trace 2, positive false, inverse -a - 1
+> alg 3 + 2*a
+norm 1, trace 6, positive true, inverse -2*a + 3
+> factor x^2 - 2
+[1] x - a
+[1] x + a
+> factor x^4 - 5*x^2 + 6
+[1] x - a
+[1] x + a
+[1] x^2 - 3
+> factor x^4 + 1
+[1] x^2 - x*a + 1
+[1] x^2 + x*a + 1
+> field a^2 + 1
+> alg 1 + a
+norm 2, trace 2, positive false, inverse -1/2*a + 1/2
+> factor x^2 + 1
+[1] x + a
+[1] x - a
+> factor x^4 - 1
+[1] x - a
+[1] x + 1
+[1] x - 1
+[1] x + a
+> factor (x^2 + 1)^2*(x - a)
+[2] x + a
+[3] x - a
+> field a^3 - 2 ; 1
+> alg a
+norm 2, trace 0, positive true, inverse 1/2*a^2
+> factor x^3 - 2
+[1] x - a
+[1] x^2 + x*a + a^2
+> field a^4 + 1
+> factor x^4 + 1
+[1] x - a^3
+[1] x + a
+[1] x + a^3
+[1] x - a

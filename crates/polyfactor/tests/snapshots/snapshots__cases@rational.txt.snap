@@ -1,0 +1,45 @@
+---
+source: crates/polyfactor/tests/snapshots.rs
+expression: s.out
+input_file: crates/polyfactor/tests/cases/rational.txt
+---
+> factor x^4 - 1
+[1] x^2 + 1
+[1] x - 1
+[1] x + 1
+> factor (x - 1)^3*(x + 2)^2*(x^2 + 1)
+[1] x^2 + 1
+[2] x + 2
+[3] x - 1
+> factor 6*x^3 + 11*x^2 + 6*x + 1
+[1] x + 1
+[1] x + 1/3
+[1] x + 1/2
+> factor x^4 + 1
+[1] x^4 + 1
+> factor x^6 - 1
+[1] x^2 - x + 1
+[1] x + 1
+[1] x^2 + x + 1
+[1] x - 1
+> factor x^8 - x
+[1] x^6 + x^5 + x^4 + x^3 + x^2 + x + 1
+[1] x - 1
+[1] x
+> factor (x^2 - 2)*(x^2 - 3)*(x^3 - 5)
+[1] x^3 - 5
+[1] x^2 - 3
+[1] x^2 - 2
+> factor x^5 - x + 1
+[1] x^5 - x + 1
+> factor x^2/4 - 1/9
+[1] x + 2/3
+[1] x - 2/3
+> irreducible x^4 + 1
+true
+> irreducible x^4 - 1
+false
+> irreducible (x^2 + 1)^2
+false
+> irreducible 3
+false

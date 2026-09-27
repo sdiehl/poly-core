@@ -212,6 +212,43 @@ impl<F: Field> Uni<F> {
         sign * pow(&o.lc(), (m - r.deg()) as u64) * o.resultant(&r)
     }
 
+    /// Yun's squarefree decomposition, the parts monic. Characteristic zero only: over `GF(p)` a
+    /// `p`-th power is lost.
+    pub fn squarefree(&self) -> Vec<(Self, u32)> {
+        let mut out = Vec::new();
+        let c = self.gcd(&self.derivative());
+        let mut w = self / &c;
+        let mut y = &self.derivative() / &c;
+        let mut i = 1;
+        while w.deg() > 0 {
+            let z = &y - &w.derivative();
+            let g = w.gcd(&z);
+            if g.deg() > 0 {
+                out.push((g.clone(), i));
+            }
+            w = &w / &g;
+            y = &z / &g;
+            i += 1;
+        }
+        out
+    }
+
+    /// The power sums `p_0, ..., p_{n-1}` of the roots of a monic `self` of degree `n`, with
+    /// multiplicity, by Newton's identities.
+    pub fn power_sums(&self) -> Vec<F> {
+        let n = self.deg();
+        let a = |j: usize| self.0[n - j].clone();
+        let mut p = vec![nat::<F>(n as u64)];
+        for k in 1..n {
+            let mut s = nat::<F>(k as u64) * a(k);
+            for i in 1..k {
+                s = s + a(i) * p[k - i].clone();
+            }
+            p.push(-s);
+        }
+        p
+    }
+
     /// Newton interpolation through `(xs[i], ys[i])` at distinct abscissae.
     pub fn interpolate(xs: &[F], ys: &[F]) -> Self {
         let mut out = Self::zero();

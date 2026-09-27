@@ -1,0 +1,12 @@
+# Factoring over GF(p) by squarefree decomposition and Berlekamp.
+mod 5
+factor x^2 + 1
+factor 3*x^4 - 3
+factor (x + 1)^5*(x^2 + 2)
+mod 3
+factor x^2 + 1
+factor x^9 - x
+factor (x^3 + 2*x + 1)^6
+mod 2
+factor x^4 + 1
+factor x^8 - x

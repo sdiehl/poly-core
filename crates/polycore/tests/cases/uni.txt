@@ -10,3 +10,10 @@ mod 101
 uni (x - 1)^2*(x + 2) ; (x - 1)*(x + 3)
 uni x^4 - 1 ; x^3 + x
 interp 0 1 2 3 ; 1 2 5 10
+mod 0
+squarefree (x - 1)^3*(x + 2)^2*(x^2 + 1)
+squarefree x^4 - 1
+powersums x^3 - 6*x^2 + 11*x - 6
+real (x^2 - 2)*(x - 1/3)*(x^2 + 1)
+real x^5 - x + 1
+real x^2 + 1

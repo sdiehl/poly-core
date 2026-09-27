@@ -95,6 +95,19 @@ impl Session {
                 self.line(format!("{} * ({s})", f.content()));
             }
             "param" => self.param(&args),
+            "real" => {
+                let u = Uni::from_poly(&self.parse(rest), 0).expect("univariate");
+                let intervals = u.isolate();
+                let shown: Vec<String> = intervals
+                    .iter()
+                    .map(|(lo, hi)| {
+                        let (a, b) = u.refine(lo, hi);
+                        assert_eq!(u.sturm(&a, &b), 1);
+                        format!("({lo}, {hi}] to ({a}, {b}]")
+                    })
+                    .collect();
+                self.line(format!("{} real: {}", intervals.len(), shown.join(", ")));
+            }
             "roots" => {
                 let p = self.p;
                 let f = self.parse(rest).map(|q| Fp::from_rational(q, p).unwrap());
@@ -182,6 +195,30 @@ impl Session {
                 for l in lines {
                     self.line(l);
                 }
+            }
+            "squarefree" => {
+                let f = Uni::from_poly(&poly(self, args[0]), 0).expect("univariate");
+                let n = self.ring.nvars();
+                let parts = f.squarefree();
+                let product = parts
+                    .iter()
+                    .fold(Uni::constant(F::one()), |acc, (g, m)| &acc * &g.pow(*m));
+                assert_eq!(product, f.monic());
+                let shown: Vec<String> = parts
+                    .iter()
+                    .map(|(g, m)| {
+                        format!(
+                            "({})^{m}",
+                            show(self, &g.to_poly(0, n, self.ring.order.clone()))
+                        )
+                    })
+                    .collect();
+                self.line(shown.join(" * "));
+            }
+            "powersums" => {
+                let f = Uni::from_poly(&poly(self, args[0]), 0).expect("univariate");
+                let shown: Vec<String> = f.power_sums().iter().map(ToString::to_string).collect();
+                self.line(format!("power sums [{}]", shown.join(", ")));
             }
             "interp" => {
                 let nums = |s: &Self, a: &str| -> Vec<F> {

@@ -1,53 +1,36 @@
-[package]
-name = "polycore"
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.1"
 authors = ["Stephen Diehl <stephen.m.diehl@gmail.com>"]
 categories = ["algorithms", "mathematics"]
-documentation = "https://docs.rs/polycore"
 edition = "2024"
 homepage = "https://github.com/sdiehl/poly-core"
-include = [
-  "src/**/*",
-  "examples/**/*",
-  "tests/**/*",
-  "README.md",
-  "CHANGELOG.md",
-  "LICENSE",
-  "Cargo.toml",
-]
-keywords = ["polynomial", "finite-field", "algebra", "groebner", "crt"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/sdiehl/poly-core"
 rust-version = "1.88"
-description = "Fields, prime fields, sparse and dense polynomials, and sparse echelon forms."
 
-[dependencies]
+[workspace.dependencies]
+insta = { version = "1.41", features = ["glob"] }
 machine-prime = "1.5.7"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-rational = "0.4"
 num-traits = "0.2"
+polycore = { path = "crates/polycore", version = "0.1.1" }
 rand_xoshiro = "0.8.1"
-rayon = { version = "1", optional = true }
+rayon = "1"
 
-[features]
-parallel = ["dep:rayon"]
-
-[dev-dependencies]
-insta = { version = "1.41", features = ["glob"] }
-
-[[example]]
-name = "demo"
-path = "examples/demo.rs"
-
-[lints.rust]
+[workspace.lints.rust]
 unsafe_code = "forbid"
 missing_debug_implementations = "warn"
 unreachable_pub = "warn"
 rust_2018_idioms = { level = "warn", priority = -1 }
 
-[lints.clippy]
+[workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }

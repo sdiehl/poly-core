@@ -231,6 +231,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "polyfactor"
+version = "0.1.1"
+dependencies = [
+ "insta",
+ "num-bigint",
+ "num-integer",
+ "num-rational",
+ "num-traits",
+ "polycore",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"

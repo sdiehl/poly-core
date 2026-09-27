@@ -1,0 +1,18 @@
+# Arithmetic and Trager factoring over number fields.
+field a^2 - 2 ; 2
+alg a
+alg 1 - a
+alg 3 + 2*a
+factor x^2 - 2
+factor x^4 - 5*x^2 + 6
+factor x^4 + 1
+field a^2 + 1
+alg 1 + a
+factor x^2 + 1
+factor x^4 - 1
+factor (x^2 + 1)^2*(x - a)
+field a^3 - 2 ; 1
+alg a
+factor x^3 - 2
+field a^4 + 1
+factor x^4 + 1

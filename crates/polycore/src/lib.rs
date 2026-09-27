@@ -24,6 +24,7 @@ mod parse;
 mod poly;
 mod ratfunc;
 mod rational;
+mod real;
 mod residue;
 pub mod sample;
 mod uni;

@@ -1,0 +1,32 @@
+[package]
+name = "polycore"
+version.workspace = true
+authors.workspace = true
+categories.workspace = true
+documentation = "https://docs.rs/polycore"
+edition.workspace = true
+homepage.workspace = true
+keywords = ["polynomial", "finite-field", "algebra", "groebner", "crt"]
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Fields, prime fields, sparse and dense polynomials, and sparse echelon forms."
+
+[dependencies]
+machine-prime.workspace = true
+num-bigint.workspace = true
+num-integer.workspace = true
+num-rational.workspace = true
+num-traits.workspace = true
+rand_xoshiro.workspace = true
+rayon = { workspace = true, optional = true }
+
+[features]
+parallel = ["dep:rayon"]
+
+[dev-dependencies]
+insta.workspace = true
+
+[lints]
+workspace = true
