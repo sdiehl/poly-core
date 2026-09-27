@@ -1,4 +1,4 @@
-# poly-core
+# polycore
 
 ## polycore
 

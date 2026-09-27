@@ -7,10 +7,10 @@ version = "0.1.1"
 authors = ["Stephen Diehl <stephen.m.diehl@gmail.com>"]
 categories = ["algorithms", "mathematics"]
 edition = "2024"
-homepage = "https://github.com/sdiehl/poly-core"
+homepage = "https://github.com/sdiehl/polycore"
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/sdiehl/poly-core"
+repository = "https://github.com/sdiehl/polycore"
 rust-version = "1.88"
 
 [workspace.dependencies]
