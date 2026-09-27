@@ -5,7 +5,7 @@
 A shared polynomial trait foundation for fields, word-sized prime fields, Chinese remaindering, sparse multivariate and dense univariate polynomials, and a sparse incremental echelon form.
 
 - [`Field`](crates/polycore/src/field.rs): blanket trait over the field operators.
-- [`Fp`](crates/polycore/src/fp.rs), [`Gf<P>`](crates/polycore/src/fp.rs): prime fields below `2^64`.
+- [`Fp`](crates/polycore/src/fp.rs), [`Gf<P>`](crates/polycore/src/fp.rs): prime fields below $2^{64}$.
 - [`Poly<F>`](crates/polycore/src/poly.rs), [`Monomial`](crates/polycore/src/monomial.rs), [`Order`](crates/polycore/src/monomial.rs): sparse multivariate polynomials.
 - [`Uni<F>`](crates/polycore/src/uni.rs): dense univariate polynomials.
 - [`RatFunc<F>`](crates/polycore/src/ratfunc.rs): univariate rational functions.
@@ -24,8 +24,8 @@ A shared polynomial trait foundation for fields, word-sized prime fields, Chines
 
 Factoring in one variable, on top of polycore.
 
-- [`factor_mod`](crates/polyfactor/src/zp.rs): Berlekamp over `GF(p)`.
-- [`factor`](crates/polyfactor/src/rational.rs): Hensel lifting and Zassenhaus over Q.
+- [`factor_mod`](crates/polyfactor/src/zp.rs): Berlekamp over $\mathrm{GF}(p)$.
+- [`factor`](crates/polyfactor/src/rational.rs): Hensel lifting and Zassenhaus over $\mathbb{Q}$.
 - [`Alg`, `NumberField`](crates/polyfactor/src/field.rs): number field arithmetic.
 - [`factor_over`](crates/polyfactor/src/trager.rs): Trager over number fields.
 
