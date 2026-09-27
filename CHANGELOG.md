@@ -4,6 +4,7 @@
 
 - Split into a workspace of `polycore` and `polyfactor`.
 - Add `polyfactor` for factoring over GF(p), Q, and number fields.
+- `Alg` and `NumberField` take any base field, for towers.
 - Add `Uni::squarefree` and `Uni::power_sums`.
 - Add Sturm counting, isolation and refinement on `Uni<Q>`.
 - `Poly::modp` and `Uni::modp` reduce rational polynomials modulo a prime; `residues` and `symmetric` read them back.
