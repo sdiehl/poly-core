@@ -36,6 +36,6 @@ jobs:
           test "v$version" = "$GITHUB_REF_NAME"
 
       - name: Publish to crates.io
-        run: cargo publish
+        run: cargo publish --workspace
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

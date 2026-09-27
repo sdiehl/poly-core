@@ -2,6 +2,10 @@
 
 ## 0.1.1 (2026-09-27)
 
+- Split into a workspace of `polycore` and `polyfactor`.
+- Add `polyfactor` for factoring over GF(p), Q, and number fields.
+- Add `Uni::squarefree` and `Uni::power_sums`.
+- Add Sturm counting, isolation and refinement on `Uni<Q>`.
 - `Poly::modp` and `Uni::modp` reduce rational polynomials modulo a prime; `residues` and `symmetric` read them back.
 - `Uni::mul_linear` multiplies by `x - a` in place.
 - `Uni::deflate` performs synthetic division by `x - a`, returning the quotient and `self(a)`.
