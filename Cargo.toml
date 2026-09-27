@@ -19,7 +19,7 @@ keywords = ["polynomial", "finite-field", "algebra", "groebner", "crt"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/sdiehl/poly-core"
-rust-version = "1.98"
+rust-version = "1.88"
 description = "Fields, prime fields, sparse and dense polynomials, and sparse echelon forms."
 
 [dependencies]
