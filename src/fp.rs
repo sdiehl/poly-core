@@ -95,7 +95,19 @@ impl Fp {
         (self.bind(p).v, o.bind(p).v, p)
     }
 
+    #[inline]
     fn lift(self, o: Self, wrap: fn(u64, u64) -> u64, op: fn(u64, u64, u64) -> u64) -> Self {
+        if self.p == o.p && self.p != 0 {
+            return Self {
+                v: op(self.v, o.v, self.p),
+                p: self.p,
+            };
+        }
+        self.lift_cold(o, wrap, op)
+    }
+
+    #[cold]
+    fn lift_cold(self, o: Self, wrap: fn(u64, u64) -> u64, op: fn(u64, u64, u64) -> u64) -> Self {
         let (a, b, p) = self.unify(o);
         let v = if p == 0 { wrap(a, b) } else { op(a, b, p) };
         Self { v, p }
@@ -104,6 +116,9 @@ impl Fp {
 
 impl PartialEq for Fp {
     fn eq(&self, o: &Self) -> bool {
+        if self.p == o.p {
+            return self.v == o.v;
+        }
         let (a, b, _) = self.unify(*o);
         a == b
     }

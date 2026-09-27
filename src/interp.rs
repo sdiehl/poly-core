@@ -51,13 +51,16 @@ impl<F: Field> Newton<F> {
     }
 
     pub fn poly(&self) -> Uni<F> {
-        self.xs
-            .iter()
-            .zip(&self.cs)
-            .rev()
-            .fold(Uni::zero(), |r, (xi, c)| {
-                &(&r * &Uni::new(vec![-xi.clone(), F::one()])) + &Uni::constant(c.clone())
-            })
+        let mut r = Uni::zero();
+        for (xi, c) in self.xs.iter().zip(&self.cs).rev() {
+            r.mul_linear(xi);
+            match r.0.first_mut() {
+                Some(r0) => *r0 = r0.clone() + c.clone(),
+                None if !c.is_zero() => r.0.push(c.clone()),
+                None => {}
+            }
+        }
+        r
     }
 }
 
@@ -122,9 +125,9 @@ impl<F: Field> Thiele<F> {
         };
         let (num, den) = pairs.fold(
             (Uni::constant(last.clone()), Uni::constant(F::one())),
-            |(num, den), (ti, ci)| {
-                let shifted = &den * &Uni::new(vec![-ti.clone(), F::one()]);
-                (&shifted + &num.scale(ci), num)
+            |(num, mut den), (ti, ci)| {
+                den.mul_linear(ti);
+                (&den + &num.scale(ci), num)
             },
         );
         let g = num.gcd(&den);
@@ -136,9 +139,11 @@ impl<F: Field> Thiele<F> {
 
 /// `prod_l (z - v_l)`.
 pub fn master<F: Field>(vals: &[F]) -> Uni<F> {
-    vals.iter().fold(Uni::constant(F::one()), |acc, v| {
-        &acc * &Uni::new(vec![-v.clone(), F::one()])
-    })
+    let mut m = Uni::constant(F::one());
+    for v in vals {
+        m.mul_linear(v);
+    }
+    m
 }
 
 /// Solves the transposed Vandermonde system `sum_l c_l v_l^(j+1) = w_j`.
@@ -148,7 +153,7 @@ pub fn master<F: Field>(vals: &[F]) -> Uni<F> {
 pub fn solve<F: Field>(vals: &[F], master: &Uni<F>, w: &[F]) -> Vec<F> {
     vals.iter()
         .map(|v| {
-            let q = master / &Uni::new(vec![-v.clone(), F::one()]);
+            let (q, _) = master.deflate(v);
             let num =
                 q.0.iter()
                     .zip(w)

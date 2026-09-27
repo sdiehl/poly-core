@@ -56,6 +56,32 @@ impl<F: Field> Uni<F> {
             .map_or_else(|| self.clone(), |l| self.scale(&l))
     }
 
+    /// Multiplies by `x - a` in place.
+    pub fn mul_linear(&mut self, a: &F) {
+        if self.is_zero() {
+            return;
+        }
+        self.0.push(F::zero());
+        for i in (1..self.0.len()).rev() {
+            self.0[i] = self.0[i - 1].clone() - a.clone() * self.0[i].clone();
+        }
+        self.0[0] = -(a.clone() * self.0[0].clone());
+    }
+
+    /// Synthetic division by `x - a`: the quotient and the remainder `self(a)`.
+    pub fn deflate(&self, a: &F) -> (Self, F) {
+        let Some((lead, rest)) = self.0.split_last() else {
+            return (Self::zero(), F::zero());
+        };
+        let mut q = vec![F::zero(); rest.len()];
+        let mut r = lead.clone();
+        for (qi, c) in q.iter_mut().zip(rest).rev() {
+            *qi = r.clone();
+            r = c.clone() + a.clone() * r;
+        }
+        (Self(q), r)
+    }
+
     pub fn divrem(&self, d: &Self) -> (Self, Self) {
         let l = d.lc().inverse().expect("division by the zero polynomial");
         let mut r = self.0.clone();
@@ -193,7 +219,7 @@ impl<F: Field> Uni<F> {
         for (x, y) in xs.iter().zip(ys) {
             let c = (y.clone() - out.eval(x)) / basis.eval(x);
             out = &out + &basis.scale(&c);
-            basis = &basis * &Self::new(vec![-x.clone(), F::one()]);
+            basis.mul_linear(x);
         }
         out
     }
