@@ -7,6 +7,10 @@
 - `Fp` runtime prime field and `Gf<P>` const prime field.
 - Bare `u64` modular arithmetic and a word-sized `Primes` iterator.
 - CRT, Garner steps, and Wang rational reconstruction.
+- Persistent `crt::CrtAccumulator` with checked, non-consuming updates and reconstruction.
+- `crt::WangContext` shares the reconstruction bound across scalar, batched, or caller-parallel reconstruction.
+- `crt::try_garner` validates vector lengths, moduli, and image residues before mutation; `garner` rejects invalid inputs explicitly.
+- Reconstruction helpers reuse Wang bounds and reject inconsistent image and batch lengths.
 - `Monomial` and `Order` with lex, grlex, grevlex, weighted, block.
 - Sparse multivariate `Poly<F>` with division certificates.
 - Dense univariate `Uni<F>` with gcd, Bezout, resultant, interpolation.
