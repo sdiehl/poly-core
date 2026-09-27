@@ -104,6 +104,21 @@ impl Session {
                 let shown: Vec<String> = roots.iter().map(ToString::to_string).collect();
                 self.line(format!("roots [{}]", shown.join(", ")));
             }
+            "residues" => {
+                let f = self.parse(rest);
+                let Some(g) = f.modp(self.p) else {
+                    return self.line(format!("{} divides a denominator", self.p));
+                };
+                let u = Uni::from_poly(&f, 0).and_then(|u| u.modp(self.p));
+                assert!(u.is_none_or(
+                    |u| u.symmetric().to_poly(0, f.nvars, f.order.clone()) == g.symmetric()
+                ));
+                let (r, s) = (
+                    self.ring.show(&g.residues()),
+                    self.ring.show(&g.symmetric()),
+                );
+                self.line(format!("residues {r}, symmetric {s}"));
+            }
             _ if self.p == 0 => self.field(head, &args, Q::clone),
             _ => {
                 let p = self.p;

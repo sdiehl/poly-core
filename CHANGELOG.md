@@ -2,6 +2,7 @@
 
 ## 0.1.1 (2026-09-27)
 
+- `Poly::modp` and `Uni::modp` reduce rational polynomials modulo a prime; `residues` and `symmetric` read them back.
 - `Uni::mul_linear` multiplies by `x - a` in place.
 - `Uni::deflate` performs synthetic division by `x - a`, returning the quotient and `self(a)`.
 - `Fp` arithmetic and equality take a fast path when both operands share a modulus.
