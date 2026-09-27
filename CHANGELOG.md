@@ -3,15 +3,15 @@
 ## 0.1.1 (2026-09-27)
 
 - Split into a workspace of `polycore` and `polyfactor`.
-- Add `polyfactor` for factoring over GF(p), Q, and number fields.
-- `Alg` and `NumberField` take any base field, for towers.
+- Add `polyfactor` for factoring over GF(p), Q and number fields.
+- Generalize `Alg` and `NumberField` over any base field.
 - Add `Uni::squarefree` and `Uni::power_sums`.
 - Add Sturm counting, isolation and refinement on `Uni<Q>`.
-- `Poly::modp` and `Uni::modp` reduce rational polynomials modulo a prime; `residues` and `symmetric` read them back.
-- `Uni::mul_linear` multiplies by `x - a` in place.
-- `Uni::deflate` performs synthetic division by `x - a`, returning the quotient and `self(a)`.
-- `Fp` arithmetic and equality take a fast path when both operands share a modulus.
-- Newton, Thiele, `master`, `solve`, and `Uni::interpolate` use in-place linear factors instead of full polynomial multiplication and division.
+- Add `modp`, `residues` and `symmetric` for rational polynomials.
+- Add `Uni::mul_linear` and `Uni::deflate` for linear factors.
+- Speed up `Fp` arithmetic when moduli match.
+- Use in-place linear factors in interpolation and solves.
+- Lower MSRV to Rust 1.88.
 
 ## 0.1.0 (2026-09-26)
 
