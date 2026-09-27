@@ -1,6 +1,6 @@
 [package]
 name = "polycore"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Stephen Diehl <stephen.m.diehl@gmail.com>"]
 categories = ["algorithms", "mathematics"]
 documentation = "https://docs.rs/polycore"

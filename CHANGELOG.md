@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 (2026-09-27)
+
+- `Uni::mul_linear` multiplies by `x - a` in place.
+- `Uni::deflate` performs synthetic division by `x - a`, returning the quotient and `self(a)`.
+- `Fp` arithmetic and equality take a fast path when both operands share a modulus.
+- Newton, Thiele, `master`, `solve`, and `Uni::interpolate` use in-place linear factors instead of full polynomial multiplication and division.
+
 ## 0.1.0 (2026-09-26)
 
 - Initial release.
