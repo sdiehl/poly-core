@@ -24,9 +24,12 @@ pub const fn neg(a: u64, p: u64) -> u64 {
 
 const TOP: u64 = 1 << 62;
 
-/// For the primes just below `2^62` that [`Primes`] yields, `2^62 = c (mod p)` with `c` small, so
-/// folding the high bits twice replaces the 128-bit division.
+/// Word-sized primes multiply in 64 bits. For the primes just below `2^62` that [`Primes`] yields,
+/// `2^62 = c (mod p)` with `c` small, so folding the high bits twice replaces the 128-bit division.
 pub const fn mul(a: u64, b: u64, p: u64) -> u64 {
+    if p <= 1 << 32 {
+        return a * b % p;
+    }
     let x = a as u128 * b as u128;
     let c = TOP.wrapping_sub(p);
     if c >= 1 << 20 {

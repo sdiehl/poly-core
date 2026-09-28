@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Multiply in 64 bits in `modp::mul` for primes up to `2^32`.
+- Skip recomputing degrees on grlex and grevlex ties in `Order::compare`.
+
 ## 0.1.1 (2026-09-27)
 
 - Split into a workspace of `polycore` and `polyfactor`.

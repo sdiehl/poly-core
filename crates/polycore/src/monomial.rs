@@ -167,6 +167,8 @@ impl Order {
     pub fn compare(&self, a: &Monomial, b: &Monomial) -> Ordering {
         match self {
             Self::GrLex | Self::GRevLex if a.deg != b.deg => a.deg.cmp(&b.deg),
+            Self::GrLex => a.exps.cmp(&b.exps),
+            Self::GRevLex => b.exps.iter().rev().cmp(a.exps.iter().rev()),
             _ => self.compare_exps(&a.exps, &b.exps),
         }
     }
