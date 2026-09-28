@@ -32,36 +32,44 @@ impl Monomial {
         Self::new(e)
     }
 
+    #[inline]
     pub fn exps(&self) -> &[u32] {
         &self.exps
     }
 
+    #[inline]
     pub fn nvars(&self) -> usize {
         self.exps.len()
     }
 
+    #[inline]
     pub const fn degree(&self) -> u32 {
         self.deg
     }
 
+    #[inline]
     pub const fn is_one(&self) -> bool {
         self.deg == 0
     }
 
+    #[inline]
     pub fn divides(&self, o: &Self) -> bool {
         self.deg <= o.deg && self.exps.iter().zip(o.exps.iter()).all(|(a, b)| a <= b)
     }
 
     /// `self / o` when `o` divides `self`.
+    #[inline]
     pub fn quo(&self, o: &Self) -> Option<Self> {
         o.divides(self).then(|| self.zip(o, |a, b| a - b))
     }
 
     #[must_use]
+    #[inline]
     pub fn lcm(&self, o: &Self) -> Self {
         self.zip(o, Ord::max)
     }
 
+    #[inline]
     pub fn is_coprime(&self, o: &Self) -> bool {
         self.exps
             .iter()
@@ -92,6 +100,7 @@ impl Monomial {
 
 impl Mul for &Monomial {
     type Output = Monomial;
+    #[inline]
     fn mul(self, o: Self) -> Monomial {
         self.zip(o, |a, b| a + b)
     }
@@ -164,6 +173,7 @@ impl Order {
         }
     }
 
+    #[inline]
     pub fn compare(&self, a: &Monomial, b: &Monomial) -> Ordering {
         match self {
             Self::GrLex | Self::GRevLex if a.deg != b.deg => a.deg.cmp(&b.deg),
@@ -173,6 +183,7 @@ impl Order {
         }
     }
 
+    #[inline]
     pub fn compare_exps(&self, a: &[u32], b: &[u32]) -> Ordering {
         let deg = |e: &[u32]| e.iter().sum::<u32>();
         match self {

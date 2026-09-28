@@ -1,6 +1,7 @@
 //! Arithmetic on bare `u64` residues modulo a prime `p < 2^64`, for inner loops that keep the
 //! modulus out of the element.
 
+#[inline]
 pub const fn add(a: u64, b: u64, p: u64) -> u64 {
     let (s, carry) = a.overflowing_add(b);
     if carry || s >= p {
@@ -10,6 +11,7 @@ pub const fn add(a: u64, b: u64, p: u64) -> u64 {
     }
 }
 
+#[inline]
 pub const fn sub(a: u64, b: u64, p: u64) -> u64 {
     if a >= b {
         a - b
@@ -18,6 +20,7 @@ pub const fn sub(a: u64, b: u64, p: u64) -> u64 {
     }
 }
 
+#[inline]
 pub const fn neg(a: u64, p: u64) -> u64 {
     sub(0, a, p)
 }
@@ -26,6 +29,7 @@ const TOP: u64 = 1 << 62;
 
 /// Word-sized primes multiply in 64 bits. For the primes just below `2^62` that [`Primes`] yields,
 /// `2^62 = c (mod p)` with `c` small, so folding the high bits twice replaces the 128-bit division.
+#[inline]
 pub const fn mul(a: u64, b: u64, p: u64) -> u64 {
     if p <= 1 << 32 {
         return a * b % p;
@@ -69,6 +73,7 @@ pub const fn try_inv(a: u64, m: u64) -> Option<u64> {
 }
 
 /// The inverse of a unit `a` modulo `p`.
+#[inline]
 pub const fn inv(a: u64, p: u64) -> u64 {
     match try_inv(a, p) {
         Some(x) => x,

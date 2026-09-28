@@ -4,6 +4,7 @@
 
 - Multiply in 64 bits in `modp::mul` for primes up to `2^32`.
 - Skip recomputing degrees on grlex and grevlex ties in `Order::compare`.
+- Add inline annotations to hot path.
 
 ## 0.1.1 (2026-09-27)
 
