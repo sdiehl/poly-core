@@ -11,6 +11,7 @@ A shared polynomial trait foundation for fields, word-sized prime fields, Chines
 - [`RatFunc<F>`](crates/polycore/src/ratfunc.rs): univariate rational functions.
 - [`Echelon<F>`](crates/polycore/src/echelon.rs), [`dense`](crates/polycore/src/dense.rs): sparse and dense linear algebra.
 - [`crt`](crates/polycore/src/crt.rs): Chinese remaindering and rational reconstruction.
+- [`lehmer`](crates/polycore/src/lehmer.rs): Lehmer gcd for big integers.
 - [`interp`](crates/polycore/src/interp.rs): Newton, Thiele, Berlekamp-Massey.
 - [`Ring`](crates/polycore/src/parse.rs): parsing and printing.
 
