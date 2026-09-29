@@ -1,6 +1,7 @@
 use num_bigint::BigInt;
 use num_rational::BigRational;
-use polycore::crt::{self, CrtAccumulator, CrtError, WangContext};
+use polycore::Primes;
+use polycore::crt::{self, CrtAccumulator, CrtError, MixedRadixAccumulator, WangContext};
 
 #[test]
 fn checked_updates_preserve_state_on_error() {
@@ -145,4 +146,70 @@ fn reconstruction_helpers_reject_inconsistent_lengths() {
             .is_err()
         );
     }
+}
+
+#[test]
+fn mixed_radix_updates_preserve_state_on_error() {
+    let mut acc = MixedRadixAccumulator::new(2);
+    acc.add(5, &[1, 2]).unwrap();
+    for (p, values, expected) in [
+        (
+            7,
+            vec![1],
+            CrtError::LengthMismatch {
+                expected: 2,
+                actual: 1,
+            },
+        ),
+        (5, vec![1, 2], CrtError::NonCoprimeModuli),
+        (1, vec![0, 0], CrtError::InvalidModulus),
+        (1 << 32, vec![0, 0], CrtError::InvalidModulus),
+        (7, vec![1, 7], CrtError::UnreducedResidue),
+    ] {
+        assert_eq!(acc.add(p, &values), Err(expected));
+        assert_eq!(acc.residues(), vec![BigInt::from(1), BigInt::from(2)]);
+        assert_eq!(acc.primes(), &[5]);
+    }
+}
+
+#[test]
+fn mixed_radix_matches_garner_accumulator() {
+    // Runs of shared denominators, then unrelated fractions, over 31-bit primes so that
+    // several primes share one big radix digit and the digit sums are reduced eagerly.
+    let truth: Vec<_> = (0..700i64)
+        .map(|i| {
+            let d = if i < 500 { 1 + i / 50 } else { 3 * i + 1 };
+            BigRational::new((i * i - 40_000).pow(3).into(), d.pow(5).into())
+        })
+        .collect();
+    let mut garner = CrtAccumulator::new(truth.len());
+    let mut mixed = MixedRadixAccumulator::new(truth.len());
+    let mut done = false;
+    for p in Primes::below(1 << 31).take(12) {
+        let values: Vec<_> = truth.iter().map(|q| crt::reduce(q, p).unwrap()).collect();
+        garner.add(p, &values).unwrap();
+        mixed.add(p, &values).unwrap();
+        assert_eq!(mixed.residues(), garner.residues());
+        assert_eq!(&mixed.modulus(), garner.modulus());
+        assert_eq!(mixed.reconstruct(), garner.reconstruct());
+        done |= mixed.reconstruct().as_ref() == Some(&truth);
+    }
+    assert!(done);
+}
+
+#[test]
+fn mixed_radix_remaps_support() {
+    let mut acc = MixedRadixAccumulator::new(3);
+    assert_eq!(acc.reconstruct(), None);
+    acc.add(101, &[1, 2, 3]).unwrap();
+    acc.remap(&[Some(2), None, Some(0), Some(0)]);
+    acc.add(103, &[3, 0, 1, 1]).unwrap();
+    let int = |n: i64| BigRational::from_integer(n.into());
+    assert_eq!(
+        acc.reconstruct(),
+        Some(vec![int(3), int(0), int(1), int(1)])
+    );
+    let mut empty = MixedRadixAccumulator::new(0);
+    empty.add(5, &[]).unwrap();
+    assert_eq!(empty.reconstruct(), Some(vec![]));
 }

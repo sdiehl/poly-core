@@ -18,6 +18,7 @@ mod echelon;
 mod field;
 mod fp;
 pub mod interp;
+pub mod lehmer;
 pub mod modp;
 mod monomial;
 mod parse;
