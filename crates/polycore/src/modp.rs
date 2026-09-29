@@ -44,6 +44,36 @@ pub const fn mul(a: u64, b: u64, p: u64) -> u64 {
     if z >= p { z - p } else { z }
 }
 
+/// Multiplication by a fixed residue `c` with Shoup's precomputed quotient, for inner loops that
+/// scale many residues by one multiplier at any prime below `2^64`.
+#[derive(Clone, Copy, Debug)]
+pub struct MulBy {
+    c: u64,
+    q: u64,
+}
+
+impl MulBy {
+    /// For `c < p`.
+    pub const fn new(c: u64, p: u64) -> Self {
+        Self {
+            c,
+            q: (((c as u128) << 64) / p as u128) as u64,
+        }
+    }
+
+    /// `c * v mod p` for `v < p`. The estimate `q * p` falls short by less than `2p`.
+    #[inline]
+    pub const fn mul(self, v: u64, p: u64) -> u64 {
+        let q = ((self.q as u128 * v as u128) >> 64) as u64;
+        let r = self.c as u128 * v as u128 - q as u128 * p as u128;
+        if r >= p as u128 {
+            (r - p as u128) as u64
+        } else {
+            r as u64
+        }
+    }
+}
+
 pub const fn pow(mut a: u64, mut e: u64, p: u64) -> u64 {
     let mut r = 1 % p;
     while e > 0 {

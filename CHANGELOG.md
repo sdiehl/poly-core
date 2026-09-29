@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add `modp::MulBy` for Shoup multiplication by a fixed residue.
+
 ## 0.1.2 (2026-09-29)
 
 - Multiply in 64 bits in `modp::mul` for primes up to `2^32`.
