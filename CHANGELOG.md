@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.1.3 (2026-09-30)
 
 - Add `modp::MulBy` for Shoup multiplication by a fixed residue.
+- Add textbook examples for each feature of `polycore` and `polyfactor`.
 
 ## 0.1.2 (2026-09-29)
 
