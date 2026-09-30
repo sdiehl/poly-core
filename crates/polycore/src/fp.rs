@@ -21,7 +21,7 @@ pub trait Modular: Field + Copy {
     /// The residue in `[0, p)`, binding an unbound constant to `p`.
     fn residue_mod(&self, p: u64) -> u64 {
         if self.modulus() == 0 {
-            i128::from(self.residue() as i64).rem_euclid(i128::from(p)) as u64
+            modp::from_signed(self.residue() as i64, p)
         } else {
             self.residue()
         }
@@ -47,9 +47,9 @@ impl Fp {
         }
     }
 
-    pub fn from_i64(x: i64, p: u64) -> Self {
+    pub const fn from_i64(x: i64, p: u64) -> Self {
         Self {
-            v: i128::from(x).rem_euclid(i128::from(p)) as u64,
+            v: modp::from_signed(x, p),
             p,
         }
     }
@@ -82,7 +82,7 @@ impl Fp {
     }
 
     #[must_use]
-    pub fn bind(self, p: u64) -> Self {
+    pub const fn bind(self, p: u64) -> Self {
         if self.p == 0 && p != 0 {
             Self::from_i64(self.v as i64, p)
         } else {
@@ -235,8 +235,8 @@ impl<const P: u64> Gf<P> {
         Self(v % P)
     }
 
-    pub fn from_i64(x: i64) -> Self {
-        Self(i128::from(x).rem_euclid(i128::from(P)) as u64)
+    pub const fn from_i64(x: i64) -> Self {
+        Self(modp::from_signed(x, P))
     }
 
     pub const fn value(self) -> u64 {

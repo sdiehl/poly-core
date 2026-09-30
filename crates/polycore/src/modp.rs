@@ -88,18 +88,28 @@ pub const fn pow(mut a: u64, mut e: u64, p: u64) -> u64 {
 
 /// The inverse of `a` modulo any `m`, or `None` unless `gcd(a, m) = 1`.
 pub const fn try_inv(a: u64, m: u64) -> Option<u64> {
-    let (mut r0, mut r1) = (m as i128, (a % m) as i128);
+    let (mut r0, mut r1) = (m, a % m);
     let (mut s0, mut s1) = (0i128, 1i128);
     while r1 != 0 {
         let q = r0 / r1;
         (r0, r1) = (r1, r0 - q * r1);
-        (s0, s1) = (s1, s0 - q * s1);
+        (s0, s1) = (s1, s0 - q as i128 * s1);
     }
     if r0 == 1 {
-        Some(s0.rem_euclid(m as i128) as u64)
+        Some(if s0 < 0 {
+            (s0 + m as i128) as u64
+        } else {
+            s0 as u64
+        })
     } else {
         None
     }
+}
+
+/// `x mod p` in `[0, p)` for a signed word, without a 128-bit division.
+pub const fn from_signed(x: i64, p: u64) -> u64 {
+    let r = x.unsigned_abs() % p;
+    if x >= 0 || r == 0 { r } else { p - r }
 }
 
 /// The inverse of a unit `a` modulo `p`.
