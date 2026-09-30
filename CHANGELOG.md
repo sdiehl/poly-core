@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.4 (2026-10-01)
 
 - Invert in `modp::try_inv` with word-sized remainders instead of 128-bit division.
 - Add `modp::from_signed` and reduce signed words with it in `Fp::from_i64`, `Gf::from_i64` and `Modular::residue_mod`.
