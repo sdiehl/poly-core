@@ -5,6 +5,7 @@
 - Invert in `modp::try_inv` with word-sized remainders instead of 128-bit division.
 - Add `modp::from_signed` and reduce signed words with it in `Fp::from_i64`, `Gf::from_i64` and `Modular::residue_mod`.
 - Make `Fp::from_i64`, `Fp::bind` and `Gf::from_i64` const.
+- Run `Uni::gcd` as an in-place monic remainder sequence, one inverse and no allocation per step.
 
 ## 0.1.3 (2026-09-30)
 

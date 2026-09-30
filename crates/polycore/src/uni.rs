@@ -170,12 +170,15 @@ impl<F: Field> Uni<F> {
     /// The monic gcd.
     #[must_use]
     pub fn gcd(&self, o: &Self) -> Self {
-        let (mut a, mut b) = (self.clone(), o.clone());
-        while !b.is_zero() {
-            let r = &a % &b;
-            a = std::mem::replace(&mut b, r);
+        let (mut a, mut b) = (self.0.clone(), o.0.clone());
+        if a.len() < b.len() {
+            std::mem::swap(&mut a, &mut b);
         }
-        a.monic()
+        while !b.is_empty() {
+            rem_monic(&mut a, &mut b);
+            std::mem::swap(&mut a, &mut b);
+        }
+        Self(a).monic()
     }
 
     /// `(s, t, g)` with `s * self + t * o = g`, the gcd `g` monic.
@@ -373,6 +376,29 @@ impl<F: Field> Mul for &Uni<F> {
             }
         }
         Uni::new(v)
+    }
+}
+
+/// Make `b` monic, then reduce `a` modulo it in place, trimming trailing zeros.
+fn rem_monic<F: Field>(a: &mut Vec<F>, b: &mut [F]) {
+    let l = b[b.len() - 1]
+        .inverse()
+        .expect("nonzero leading coefficient");
+    for y in b.iter_mut() {
+        *y = y.clone() * l.clone();
+    }
+    let d = b.len() - 1;
+    while a.len() > d {
+        let c = a.pop().expect("nonempty");
+        if !c.is_zero() {
+            let base = a.len() - d;
+            for (x, y) in a[base..].iter_mut().zip(&b[..d]) {
+                *x = x.clone() - c.clone() * y.clone();
+            }
+        }
+    }
+    while a.last().is_some_and(F::is_zero) {
+        a.pop();
     }
 }
 
