@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.5 (2026-10-01)
 
 - Add fast prime-field polynomial arithmetic and `Uni` adapters.
 - Add exact sparse division with packed heap reduction.
