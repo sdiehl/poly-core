@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Add fast prime-field polynomial arithmetic and `Uni` adapters.
+- Add exact sparse division with packed heap reduction.
+- Add cached and geometric polynomial evaluation.
+- Add smooth primes and power-of-two subgroup logarithms.
+
 ## 0.1.4 (2026-10-01)
 
 - Invert in `modp::try_inv` with word-sized remainders instead of 128-bit division.

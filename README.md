@@ -8,6 +8,14 @@ A shared polynomial trait foundation for fields, word-sized prime fields, Chines
 - [`Fp`](crates/polycore/src/fp.rs), [`Gf<P>`](crates/polycore/src/fp.rs): prime fields below $2^{64}$
 - [`Poly<F>`](crates/polycore/src/poly.rs), [`Monomial`](crates/polycore/src/monomial.rs), [`Order`](crates/polycore/src/monomial.rs): sparse multivariate polynomials
 - [`Uni<F>`](crates/polycore/src/uni.rs): dense univariate polynomials
+- [`PrimeField`](crates/polycore/src/fast.rs): NTT multiplication, Newton division and half-GCD
+- [`Poly::exact`](crates/polycore/src/division.rs): exact sparse division with packed heap reduction
+- [`PowerTable<F>`](crates/polycore/src/evaluation.rs): cached monomial powers
+- [`Poly::univariate_images`](crates/polycore/src/evaluation.rs): all univariate images in one pass
+- [`GeometricEvaluator<F>`](crates/polycore/src/evaluation.rs): successive geometric evaluations
+- [`modp`](crates/polycore/src/modp.rs): word-sized modular arithmetic
+- [`SmoothPrimes`](crates/polycore/src/subgroup.rs): primes with a prescribed power of two in p − 1
+- [`PowerOfTwoSubgroup`](crates/polycore/src/subgroup.rs): subgroup generators and discrete logarithms
 - [`RatFunc<F>`](crates/polycore/src/ratfunc.rs): univariate rational functions
 - [`Echelon<F>`](crates/polycore/src/echelon.rs), [`dense`](crates/polycore/src/dense.rs): sparse and dense linear algebra
 - [`crt`](crates/polycore/src/crt.rs): Chinese remaindering and rational reconstruction

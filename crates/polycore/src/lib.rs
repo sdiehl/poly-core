@@ -14,7 +14,10 @@
 
 pub mod crt;
 pub mod dense;
+pub mod division;
 mod echelon;
+pub mod evaluation;
+pub mod fast;
 mod field;
 mod fp;
 pub mod interp;
@@ -28,6 +31,7 @@ mod rational;
 mod real;
 mod residue;
 pub mod sample;
+mod subgroup;
 mod uni;
 
 pub use echelon::{Echelon, Lead, SparseRow};

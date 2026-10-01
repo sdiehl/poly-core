@@ -1,6 +1,8 @@
 //! Arithmetic on bare `u64` residues modulo a prime `p < 2^64`, for inner loops that keep the
 //! modulus out of the element.
 
+pub use crate::subgroup::{PowerOfTwoSubgroup, SmoothPrimes};
+
 #[inline]
 pub const fn add(a: u64, b: u64, p: u64) -> u64 {
     let (s, carry) = a.overflowing_add(b);
