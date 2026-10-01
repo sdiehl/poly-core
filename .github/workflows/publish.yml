@@ -36,6 +36,14 @@ jobs:
           test "v$version" = "$GITHUB_REF_NAME"
 
       - name: Publish to crates.io
-        run: cargo publish --workspace
+        run: |
+          for crate in polycore polyfactor; do
+            version=$(cargo metadata --no-deps --format-version 1 | jq -r --arg c "$crate" '.packages[] | select(.name == $c) | .version')
+            if curl -sfA "polycore-ci" "https://crates.io/api/v1/crates/$crate/$version" > /dev/null; then
+              echo "$crate $version already published, skipping"
+            else
+              cargo publish -p "$crate"
+            fi
+          done
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
